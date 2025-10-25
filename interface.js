@@ -311,8 +311,7 @@
 		var new_interface = component;
 
 		Lampa.InteractionMain = function (object) {
-			var use = new_interface;
-			return new use(object);
+			return new new_interface(object);
 		};
 
 		Lampa.Template.add(
