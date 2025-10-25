@@ -321,5 +321,5 @@
 		$("body").append(Lampa.Template.get("new_interface_style", {}, true));
 	}
 
-	if (!window.plugin_interface_ready) startPlugin();
+	startPlugin();
 })();
