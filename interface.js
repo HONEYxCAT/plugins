@@ -306,7 +306,7 @@
 	}
 
 	function startPlugin() {
-		window.plugin_interface_ready = true;
+		window.plugin_interface_ready = "blabla";
 		var old_interface = Lampa.InteractionMain;
 		var new_interface = component;
 
