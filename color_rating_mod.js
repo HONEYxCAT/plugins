@@ -41,7 +41,7 @@
 			} else if (vote >= 6 && vote < 7) {
 				color = "cornflowerblue";
 			} else if (vote >= 7 && vote < 8) {
-				color = "purple";
+				color = "darkmagenta";
 			} else if (vote >= 8 && vote <= 10) {
 				color = "lawngreen";
 			}
