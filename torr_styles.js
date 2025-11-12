@@ -2,10 +2,12 @@
 	"use strict";
 
 	/**
-	 * Имя плагина (используется только внутренне, без регистрации меню/настроек)
+	 * Имя и данные плагина
 	 */
 	var PLUGIN_ID = "torrent_styles_mod";
 	var PLUGIN_NAME = "Torrent Styles MOD";
+	var PLUGIN_VERSION = "1.0.1";
+	var PLUGIN_DESCRIPTION = "Добавляет визуальные улучшения списка торрентов: подсветка сидов/битрейта, фокус и отступы.";
 
 	/**
 	 * Базовые стили для торрентов
@@ -67,7 +69,7 @@
 			style.innerHTML = css;
 			document.head.appendChild(style);
 		} catch (e) {
-			console.error(PLUGIN_NAME + " style injection error:", e);
+			console.error("[" + PLUGIN_ID + "] style injection error:", e);
 		}
 	}
 
@@ -90,7 +92,7 @@
 				else span.classList.remove("high-bitrate");
 			});
 		} catch (e) {
-			console.error(PLUGIN_NAME + " torrent update error:", e);
+			console.error("[" + PLUGIN_ID + "] torrent update error:", e);
 		}
 	}
 
@@ -99,6 +101,11 @@
 	 */
 	function observeDom() {
 		try {
+			if (typeof MutationObserver === "undefined") {
+				updateTorrentStyles();
+				return;
+			}
+
 			var observer = new MutationObserver(function (mutations) {
 				var hasAdded = false;
 				for (var i = 0; i < mutations.length; i++) {
@@ -113,18 +120,66 @@
 			observer.observe(document.body, { childList: true, subtree: true });
 			updateTorrentStyles();
 		} catch (e) {
-			console.error(PLUGIN_NAME + " observer error:", e);
+			console.error("[" + PLUGIN_ID + "] observer error:", e);
 			updateTorrentStyles();
 		}
 	}
 
 	/**
-	 * Старт плагина: только стили и логика без пункта меню/настроек
+	 * Регистрация плагина в манифесте Lampa и установка флага готовности,
+	 * чтобы платформа не считала плагин неподтвержденным.
+	 */
+	function registerPlugin() {
+		try {
+			if (typeof Lampa === "undefined") return;
+
+			Lampa.Manifest = Lampa.Manifest || {};
+			Lampa.Manifest.plugins = Lampa.Manifest.plugins || {};
+
+			Lampa.Manifest.plugins[PLUGIN_ID] = {
+				type: "other",
+				name: PLUGIN_NAME,
+				version: PLUGIN_VERSION,
+				description: PLUGIN_DESCRIPTION,
+			};
+
+			// Стандартный флаг готовности плагина
+			window["plugin_" + PLUGIN_ID + "_ready"] = true;
+		} catch (e) {
+			console.error("[" + PLUGIN_ID + "] register error:", e);
+		}
+	}
+
+	/**
+	 * Старт плагина
 	 */
 	function start() {
 		injectStyles();
 		observeDom();
+		registerPlugin();
+
+		console.log("[" + PLUGIN_ID + "] Plugin started: torrent styles active");
 	}
 
-	start();
+	/**
+	 * Инициализация с учетом готовности Lampa
+	 */
+	(function init() {
+		if (typeof Lampa !== "undefined") {
+			if (window.appready) {
+				start();
+			} else if (Lampa.Listener && typeof Lampa.Listener.follow === "function") {
+				Lampa.Listener.follow("app", function (e) {
+					if (e.type === "ready") start();
+				});
+			} else {
+				setTimeout(start, 500);
+			}
+		} else {
+			// Режим без Lampa: применяем только стили и наблюдение за DOM
+			injectStyles();
+			observeDom();
+			console.log("[" + PLUGIN_ID + "] Lampa not detected, DOM-only mode (styles only)");
+		}
+	})();
 })();
