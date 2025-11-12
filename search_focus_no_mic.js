@@ -91,7 +91,7 @@
 	function handleSearchOpen() {
 		// Немного задержки, чтобы DOM точно успел отрисоваться
 		setTimeout(function () {
-			hideMicButton();
+			// hideMicButton();
 			focusSearchInput();
 		}, 100);
 	}
@@ -159,7 +159,7 @@
 				if (changed) {
 					// Чуть позже, чтобы элементы точно были на месте
 					setTimeout(function () {
-						hideMicButton();
+						// hideMicButton();
 						focusSearchInput();
 					}, 50);
 				}
@@ -228,7 +228,7 @@
 	 */
 	function start() {
 		// Мгновенно пытаемся применить (на случай, если поиск уже открыт)
-		hideMicButton();
+		// hideMicButton();
 		focusSearchInput();
 
 		// Слежение за будущими изменениями DOM
@@ -267,7 +267,7 @@
 				} else if (attempts > 40) {
 					clearInterval(timer);
 					// Запускаем базовую логику только для DOM (минимум, без событий Lampa)
-					hideMicButton();
+					// hideMicButton();
 					observeSearchDom();
 					console.log("[" + PLUGIN_ID + "] Lampa not detected, DOM-only mode");
 				}
