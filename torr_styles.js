@@ -119,11 +119,69 @@
 	}
 
 	/**
+	 * Регистрация плагина в Lampa и отметка готовности.
+	 */
+	function registerPlugin() {
+		try {
+			if (typeof Lampa !== "undefined") {
+				Lampa.Manifest = Lampa.Manifest || {};
+				Lampa.Manifest.plugins = Lampa.Manifest.plugins || {};
+
+				Lampa.Manifest.plugins[PLUGIN_ID] = {
+					type: "other",
+					name: PLUGIN_NAME,
+					version: "1.0.0",
+					description: "Дополнительные стили для карточек торрентов.",
+				};
+			}
+		} catch (e) {
+			console.error(PLUGIN_NAME + " register error:", e);
+		} finally {
+			window["plugin_" + PLUGIN_ID + "_ready"] = true;
+		}
+	}
+
+	/**
+	 * Ждём готовности приложения, чтобы вызвать регистрацию.
+	 */
+	function waitForAppReady() {
+		try {
+			if (typeof Lampa !== "undefined") {
+				if (window.appready) {
+					registerPlugin();
+				} else if (Lampa.Listener && typeof Lampa.Listener.follow === "function") {
+					Lampa.Listener.follow("app", function (e) {
+						if (e.type === "ready") registerPlugin();
+					});
+				} else {
+					setTimeout(registerPlugin, 500);
+				}
+				return;
+			}
+
+			var attempts = 0;
+			var timer = setInterval(function () {
+				attempts++;
+				if (typeof Lampa !== "undefined") {
+					clearInterval(timer);
+					waitForAppReady();
+				} else if (attempts > 40) {
+					clearInterval(timer);
+					window["plugin_" + PLUGIN_ID + "_ready"] = true;
+				}
+			}, 250);
+		} catch (e) {
+			console.error(PLUGIN_NAME + " app wait error:", e);
+		}
+	}
+
+	/**
 	 * Старт плагина: только стили и логика без пункта меню/настроек
 	 */
 	function start() {
 		injectStyles();
 		observeDom();
+		waitForAppReady();
 	}
 
 	start();
