@@ -38,6 +38,11 @@
 		".torrent-item.focus::after": {
 			border: "none",
 		},
+
+		// Небольшой отступ для области со списком торрентов
+		".scroll__body": {
+			margin: "5px",
+		},
 	};
 
 	/**
