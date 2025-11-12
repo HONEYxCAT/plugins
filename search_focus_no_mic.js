@@ -4,8 +4,8 @@
 	/**
 	 * Плагин для Lampa:
 	 * - Ставит фокус сразу в строку ввода при открытии поиска.
-	 * - Отключает визуальное выделение иконки микрофона (.simple-keyboard-mic.focus),
-	 *   не трогая сам класс и не ломая остальной фокус-навигации.
+	 * - Отключает визуальное выделение и выбор иконки микрофона:
+	 *   делает её визуальной заглушкой, которую нельзя выбрать пультом.
 	 *
 	 * Реализовано максимально безопасно:
 	 * - Ожидает готовности приложения.
@@ -15,24 +15,72 @@
 
 	var PLUGIN_ID = "search_focus_no_mic";
 	var PLUGIN_NAME = "Search Focus (No Mic)";
-	var INPUT_SELECTOR = "#orsay-keyboard.simple-keyboard-input.selector, #orsay-keyboard.simple-keyboard-input, .search__keypad input.simple-keyboard-input";
+	var INPUT_SELECTOR = "#orsay-keyboard.simple-keyboard-input.selector, " + "#orsay-keyboard.simple-keyboard-input, " + ".search__keypad input.simple-keyboard-input";
 
 	/**
-	 * Глобальный CSS-override для .simple-keyboard-mic.focus
-	 * Оставляем кнопку, но полностью гасим её "активный" стиль.
+	 * Глобальный CSS-override:
+	 * - Гасим "активный" стиль микрофона.
+	 * - Делаем кнопку микрофона заглушкой: видна, но не получает события и фокус.
 	 */
 	function injectMicFocusOverride() {
 		try {
 			var style = document.createElement("style");
 			style.setAttribute("data-" + PLUGIN_ID + "-styles", "true");
 
-			// Сбрасываем фон и цвет для состояния фокуса микрофона.
-			// Используем !important, чтобы перебить штатные стили.
-			style.textContent = ".simple-keyboard-mic.focus {" + "background: transparent !important;" + "color: inherit !important;" + "box-shadow: none !important;" + "outline: none !important;" + "}";
+			style.textContent =
+				// Убираем любую визуальную подсветку при фокусе на микрофоне
+				".simple-keyboard-mic.focus {" +
+				"background: transparent !important;" +
+				"color: inherit !important;" +
+				"box-shadow: none !important;" +
+				"outline: none !important;" +
+				"}" +
+				// Делаем микрофон заглушкой:
+				// - не кликается
+				// - не реагирует на hover/focus
+				// Визуально остаётся, но как статичная иконка.
+				".simple-keyboard-mic {" +
+				"pointer-events: none !important;" +
+				"}";
 
 			document.head.appendChild(style);
 		} catch (e) {
 			console.error("[" + PLUGIN_ID + "] mic focus override error:", e);
+		}
+	}
+
+	/**
+	 * Убираем иконку микрофона из логики навигации Lampa:
+	 * - не должна быть элементом, который выбирается пультом.
+	 * - оставляем в DOM, только выкидываем из controller/selectors.
+	 */
+	function disableMicSelection() {
+		try {
+			var mics = document.querySelectorAll(".simple-keyboard-mic");
+			if (!mics || !mics.length) return;
+
+			mics.forEach(function (mic) {
+				if (!mic || !(mic instanceof HTMLElement)) return;
+
+				// Если помечен как элемент навигации (например, .selector) — снимаем
+				if (mic.classList && mic.classList.contains("selector")) {
+					mic.classList.remove("selector");
+				}
+
+				// На всякий случай убираем tabindex, если присутствует
+				if (mic.hasAttribute("tabindex")) {
+					mic.removeAttribute("tabindex");
+				}
+
+				// Убираем типичные data-атрибуты, по которым Lampa может вешать контроллер
+				if (mic.dataset) {
+					if (mic.dataset.controller) delete mic.dataset.controller;
+					if (mic.dataset.action) delete mic.dataset.action;
+					if (mic.dataset.type) delete mic.dataset.type;
+				}
+			});
+		} catch (e) {
+			console.error("[" + PLUGIN_ID + "] disableMicSelection error:", e);
 		}
 	}
 
@@ -42,16 +90,13 @@
 	 */
 	function focusSearchInput() {
 		try {
-			// Пытаемся найти input по ID/классам из примера
 			var input = document.querySelector(INPUT_SELECTOR);
 
 			if (input) {
-				// Фокус для устройств с клавиатурой / мышью
 				if (typeof input.focus === "function") {
 					input.focus();
 				}
 
-				// Для интерфейса Lampa (навигация по "selector")
 				if (typeof Lampa !== "undefined" && Lampa.Controller && typeof Lampa.Controller.toggle === "function") {
 					try {
 						if (typeof Lampa.Controller.own === "function" && !Lampa.Controller.own("search")) {
@@ -83,11 +128,12 @@
 	/**
 	 * Обработка открытия поиска:
 	 * - ставим фокус в строку ввода
+	 * - блокируем выбор иконки микрофона
 	 */
 	function handleSearchOpen() {
-		// Немного задержки, чтобы DOM точно успел отрисоваться
 		setTimeout(function () {
 			focusSearchInput();
+			disableMicSelection();
 		}, 100);
 	}
 
@@ -97,10 +143,8 @@
 	function bindLampaEvents() {
 		if (typeof Lampa === "undefined" || !Lampa.Listener) return;
 
-		// Общие события активности
 		Lampa.Listener.follow("activity", function (e) {
 			try {
-				// Когда открывается компонент "search"
 				if (e.type === "start" && (e.component === "search" || e.component === "search_results")) {
 					handleSearchOpen();
 				}
@@ -109,7 +153,6 @@
 			}
 		});
 
-		// Если есть отдельные события поиска, также реагируем
 		Lampa.Listener.follow("search", function (e) {
 			try {
 				if (e.type === "open" || e.type === "start" || e.type === "visible") {
@@ -123,7 +166,7 @@
 
 	/**
 	 * Наблюдатель за DOM:
-	 * - Если поиск отрисовался динамически, применяем автофокус.
+	 * - Если поиск/клавиатура отрисованы динамически, ставим фокус и отключаем микрофон.
 	 */
 	function observeSearchDom() {
 		try {
@@ -140,7 +183,6 @@
 						var node = m.addedNodes[j];
 						if (!(node instanceof HTMLElement)) continue;
 
-						// Если появился блок поиска или клавиатура, реагируем
 						if ((node.matches && (node.matches(".search__keypad") || node.matches(".search"))) || (node.querySelector && (node.querySelector(".search__keypad") || node.querySelector("#orsay-keyboard")))) {
 							changed = true;
 							break;
@@ -153,6 +195,7 @@
 				if (changed) {
 					setTimeout(function () {
 						focusSearchInput();
+						disableMicSelection();
 					}, 50);
 				}
 			});
@@ -167,8 +210,7 @@
 	}
 
 	/**
-	 * Регистрация плагина в Lampa (минимальная, чтобы считался валидным).
-	 * Без добавления компонента настроек, чтобы пункт меню не отображался.
+	 * Регистрация плагина в Lampa (минимальная, без настроек).
 	 */
 	function registerPlugin() {
 		try {
@@ -180,8 +222,8 @@
 			Lampa.Manifest.plugins[PLUGIN_ID] = {
 				type: "other",
 				name: PLUGIN_NAME,
-				version: "1.0.1",
-				description: "Отключает подсветку .simple-keyboard-mic.focus и фокусирует строку поиска при открытии.",
+				version: "1.1.0",
+				description: "Фокусирует строку поиска при открытии и делает иконку микрофона недоступной для выбора (заглушка).",
 			};
 
 			window["plugin_" + PLUGIN_ID + "_ready"] = true;
@@ -193,17 +235,20 @@
 	/**
 	 * Старт плагина:
 	 * - Вставляем CSS-override.
-	 * - Настраиваем автофокус.
-	 * - Регистрируемся в Lampa.
+	 * - Ставим автофокус.
+	 * - Отключаем выбор микрофона.
+	 * - Включаем наблюдатель и события.
+	 * - Регистрируем плагин.
 	 */
 	function start() {
 		injectMicFocusOverride();
 		focusSearchInput();
+		disableMicSelection();
 		observeSearchDom();
 		bindLampaEvents();
 		registerPlugin();
 
-		console.log("[" + PLUGIN_ID + "] Plugin started: mic focus override + search auto-focus enabled");
+		console.log("[" + PLUGIN_ID + "] Plugin started: search auto-focus + mic visual-only (no selection)");
 	}
 
 	(function init() {
@@ -228,7 +273,7 @@
 					clearInterval(timer);
 					injectMicFocusOverride();
 					observeSearchDom();
-					console.log("[" + PLUGIN_ID + "] Lampa not detected, DOM-only mode (mic focus override active)");
+					console.log("[" + PLUGIN_ID + "] Lampa not detected, DOM-only mode (mic visual-only, focus tweak active)");
 				}
 			}, 250);
 		}
