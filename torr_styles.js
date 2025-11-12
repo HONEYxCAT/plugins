@@ -24,6 +24,10 @@
 			"box-shadow": "0 0 0 0.25em #1aff00",
 		},
 
+		".torrent-item.focus::after": {
+			border: "none",
+		},
+
 		// Небольшой отступ для области со списком торрентов
 		".scroll__body": {
 			margin: "5px",
