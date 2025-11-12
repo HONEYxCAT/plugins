@@ -2,7 +2,7 @@
 	"use strict";
 
 	/**
-	 * Имя плагина для отображения в интерфейсе (можно изменить по желанию)
+	 * Имя плагина (используется только внутренне, без регистрации меню/настроек)
 	 */
 	var PLUGIN_ID = "torrent_styles_mod";
 	var PLUGIN_NAME = "Torrent Styles MOD";
@@ -38,11 +38,6 @@
 		".torrent-item.focus::after": {
 			border: "none",
 		},
-
-		// Небольшой отступ для области со списком торрентов
-		// ".scroll__body": {
-		// 	margin: "5px",
-		// },
 	};
 
 	/**
@@ -67,7 +62,6 @@
 			style.innerHTML = css;
 			document.head.appendChild(style);
 		} catch (e) {
-			// Тихо игнорируем, чтобы не ломать плагин
 			console.error(PLUGIN_NAME + " style injection error:", e);
 		}
 	}
@@ -95,6 +89,9 @@
 		}
 	}
 
+	/**
+	 * Наблюдение за изменениями DOM для обновления стилей
+	 */
 	function observeDom() {
 		try {
 			var observer = new MutationObserver(function (mutations) {
@@ -112,61 +109,17 @@
 			updateTorrentStyles();
 		} catch (e) {
 			console.error(PLUGIN_NAME + " observer error:", e);
-			// Если MutationObserver не сработал, просто один раз обновим
 			updateTorrentStyles();
 		}
 	}
 
 	/**
-	 * Старт плагина
+	 * Старт плагина: только стили и логика без пункта меню/настроек
 	 */
 	function start() {
 		injectStyles();
 		observeDom();
 	}
 
-	/**
-	 * Регистрация в Lampa, чтобы плагин считался "корректным"
-	 * Код не ломает работу, если Lampa ещё не загружен или отсутствует.
-	 */
-	function register() {
-		try {
-			if (window.Lampa && Lampa.SettingsApi && typeof Lampa.SettingsApi.addComponent === "function") {
-				// Добавляем компонент в настройки (как делают другие плагины)
-				Lampa.SettingsApi.addComponent({
-					component: PLUGIN_ID,
-					name: PLUGIN_NAME,
-					icon: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="18" height="18" rx="3" ry="3" stroke="currentColor" stroke-width="2"/><path d="M7 13L10 16L17 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-				});
-
-				// Статичный пункт в настройках, чтобы Lampa видела плагин
-				if (typeof Lampa.SettingsApi.addParam === "function") {
-					Lampa.SettingsApi.addParam({
-						component: PLUGIN_ID,
-						param: {
-							name: PLUGIN_ID + "_info",
-							type: "static",
-						},
-						field: {
-							name: PLUGIN_NAME,
-							description: "Подсветка сидов, битрейта и улучшенный фокус в списке торрентов",
-						},
-					});
-				}
-			}
-
-			// Дополнительно помечаем, что плагин успешно инициализировался
-			window["plugin_" + PLUGIN_ID + "_ready"] = true;
-		} catch (e) {
-			console.error(PLUGIN_NAME + " registration error:", e);
-		}
-	}
-
-	/**
-	 * Инициализация:
-	 * - сразу запускаем стили и наблюдатель
-	 * - регистрируемся как плагин Lampa (если доступен)
-	 */
 	start();
-	register();
 })();
