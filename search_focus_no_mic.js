@@ -3,38 +3,36 @@
 
 	/**
 	 * Плагин для Lampa:
-	 * - Прячет кнопку голосового поиска (микрофон) в поле поиска.
 	 * - Ставит фокус сразу в строку ввода при открытии поиска.
+	 * - Отключает визуальное выделение иконки микрофона (.simple-keyboard-mic.focus),
+	 *   не трогая сам класс и не ломая остальной фокус-навигации.
 	 *
 	 * Реализовано максимально безопасно:
 	 * - Ожидает готовности приложения.
 	 * - Подписывается на события активности и поиска.
-	 * - Не ломает работу, если структура DOM немного отличается.
+	 * - Следит за DOM для динамически появляющегося поиска.
 	 */
 
 	var PLUGIN_ID = "search_focus_no_mic";
 	var PLUGIN_NAME = "Search Focus (No Mic)";
-	var MIC_SELECTOR = ".simple-keyboard-mic, .search__keypad .simple-keyboard-mic, .search__keypad .selector.simple-keyboard-mic";
 	var INPUT_SELECTOR = "#orsay-keyboard.simple-keyboard-input.selector, #orsay-keyboard.simple-keyboard-input, .search__keypad input.simple-keyboard-input";
 
 	/**
-	 * Скрыть кнопку микрофона, если она есть.
+	 * Глобальный CSS-override для .simple-keyboard-mic.focus
+	 * Оставляем кнопку, но полностью гасим её "активный" стиль.
 	 */
-	function hideMicButton() {
+	function injectMicFocusOverride() {
 		try {
-			var micButtons = document.querySelectorAll(MIC_SELECTOR);
-			if (!micButtons || !micButtons.length) return;
+			var style = document.createElement("style");
+			style.setAttribute("data-" + PLUGIN_ID + "-styles", "true");
 
-			micButtons.forEach(function (el) {
-				// Используем !important для надежного скрытия
-				el.style.setProperty("display", "none", "important");
-				el.style.setProperty("visibility", "hidden", "important");
-				el.style.setProperty("width", "0", "important");
-				el.style.setProperty("margin", "0", "important");
-				el.style.setProperty("padding", "0", "important");
-			});
+			// Сбрасываем фон и цвет для состояния фокуса микрофона.
+			// Используем !important, чтобы перебить штатные стили.
+			style.textContent = ".simple-keyboard-mic.focus {" + "background: transparent !important;" + "color: inherit !important;" + "box-shadow: none !important;" + "outline: none !important;" + "}";
+
+			document.head.appendChild(style);
 		} catch (e) {
-			console.error("[" + PLUGIN_ID + "] error hideMicButton:", e);
+			console.error("[" + PLUGIN_ID + "] mic focus override error:", e);
 		}
 	}
 
@@ -49,20 +47,19 @@
 
 			if (input) {
 				// Фокус для устройств с клавиатурой / мышью
-				input.focus && input.focus();
+				if (typeof input.focus === "function") {
+					input.focus();
+				}
 
 				// Для интерфейса Lampa (навигация по "selector")
-				if (typeof Lampa !== "undefined" && Lampa.Controller && Lampa.Controller.toggle) {
+				if (typeof Lampa !== "undefined" && Lampa.Controller && typeof Lampa.Controller.toggle === "function") {
 					try {
-						// Попробуем отдать фокус контроллеру поиска, если он есть
-						if (Lampa.Controller.own && !Lampa.Controller.own("search")) {
-							// Если у Lampa есть отдельный контроллер поиска
+						if (typeof Lampa.Controller.own === "function" && !Lampa.Controller.own("search")) {
 							if (Lampa.Controller.storage && Lampa.Controller.storage.search) {
 								Lampa.Controller.toggle("search");
 							}
 						}
 					} catch (e) {
-						// Тихо логируем, не ломаем поведение
 						console.log("[" + PLUGIN_ID + "] controller focus warn:", e);
 					}
 				}
@@ -74,8 +71,8 @@
 			var searchRoot = document.querySelector(".search, .search__input, .search__keypad");
 			if (searchRoot) {
 				var textInput = searchRoot.querySelector("input[type='text'], input.simple-keyboard-input, input");
-				if (textInput) {
-					textInput.focus && textInput.focus();
+				if (textInput && typeof textInput.focus === "function") {
+					textInput.focus();
 				}
 			}
 		} catch (e) {
@@ -85,13 +82,11 @@
 
 	/**
 	 * Обработка открытия поиска:
-	 * - прячем микрофон
 	 * - ставим фокус в строку ввода
 	 */
 	function handleSearchOpen() {
 		// Немного задержки, чтобы DOM точно успел отрисоваться
 		setTimeout(function () {
-			// hideMicButton();
 			focusSearchInput();
 		}, 100);
 	}
@@ -128,7 +123,7 @@
 
 	/**
 	 * Наблюдатель за DOM:
-	 * - Если поиск отрисовался динамически, применяем изменения.
+	 * - Если поиск отрисовался динамически, применяем автофокус.
 	 */
 	function observeSearchDom() {
 		try {
@@ -139,15 +134,14 @@
 
 				for (var i = 0; i < mutations.length; i++) {
 					var m = mutations[i];
-
 					if (!m.addedNodes || !m.addedNodes.length) continue;
 
 					for (var j = 0; j < m.addedNodes.length; j++) {
 						var node = m.addedNodes[j];
 						if (!(node instanceof HTMLElement)) continue;
 
-						// Если появился блок поиска или виртуальная клавиатура, реагируем
-						if (node.matches && (node.matches(".search__keypad") || node.matches(".search") || node.querySelector(".search__keypad") || node.querySelector("#orsay-keyboard") || node.querySelector(".simple-keyboard-mic"))) {
+						// Если появился блок поиска или клавиатура, реагируем
+						if ((node.matches && (node.matches(".search__keypad") || node.matches(".search"))) || (node.querySelector && (node.querySelector(".search__keypad") || node.querySelector("#orsay-keyboard")))) {
 							changed = true;
 							break;
 						}
@@ -157,9 +151,7 @@
 				}
 
 				if (changed) {
-					// Чуть позже, чтобы элементы точно были на месте
 					setTimeout(function () {
-						// hideMicButton();
 						focusSearchInput();
 					}, 50);
 				}
@@ -184,15 +176,13 @@
 			Lampa.Manifest = Lampa.Manifest || {};
 			Lampa.Manifest.plugins = Lampa.Manifest.plugins || {};
 
-			// Информация о плагине
 			Lampa.Manifest.plugins[PLUGIN_ID] = {
 				type: "other",
 				name: PLUGIN_NAME,
-				version: "1.0.0",
-				description: "Прячет кнопку голосового поиска и сразу фокусирует строку ввода поиска",
+				version: "1.0.1",
+				description: "Отключает подсветку .simple-keyboard-mic.focus и фокусирует строку поиска при открытии.",
 			};
 
-			// Если доступен SettingsApi — добавим статический параметр (необязательно, но делает плагин «красивым»)
 			if (Lampa.SettingsApi && typeof Lampa.SettingsApi.addComponent === "function") {
 				Lampa.SettingsApi.addComponent({
 					component: PLUGIN_ID,
@@ -209,7 +199,7 @@
 						},
 						field: {
 							name: PLUGIN_NAME,
-							description: "Скрывает кнопку голосового поиска и устанавливает фокус в строку поиска при открытии.",
+							description: "Сбрасывает стиль .simple-keyboard-mic.focus и устанавливает фокус в строку поиска при открытии.",
 						},
 					});
 				}
@@ -223,27 +213,20 @@
 
 	/**
 	 * Старт плагина:
-	 * - Дожидаемся готовности приложения (если Lampa есть).
-	 * - Вешаем слушатели и наблюдатель DOM.
+	 * - Вставляем CSS-override.
+	 * - Настраиваем автофокус.
+	 * - Регистрируемся в Lampa.
 	 */
 	function start() {
-		// Мгновенно пытаемся применить (на случай, если поиск уже открыт)
-		// hideMicButton();
+		injectMicFocusOverride();
 		focusSearchInput();
-
-		// Слежение за будущими изменениями DOM
 		observeSearchDom();
-
-		// Интеграция с событиями Lampa
 		bindLampaEvents();
-
-		// Регистрация в манифесте
 		registerPlugin();
 
-		console.log("[" + PLUGIN_ID + "] Plugin started: mic hidden, search auto-focus enabled");
+		console.log("[" + PLUGIN_ID + "] Plugin started: mic focus override + search auto-focus enabled");
 	}
 
-	// Ожидаем Lampa или запускаем сразу, если уже доступна
 	(function init() {
 		if (typeof Lampa !== "undefined") {
 			if (window.appready) {
@@ -253,11 +236,9 @@
 					if (e.type === "ready") start();
 				});
 			} else {
-				// Если нет Listener, просто пробуем с небольшой задержкой
 				setTimeout(start, 500);
 			}
 		} else {
-			// Если Lampa не обнаружена (например, окружение загружается нестандартно), пробуем позже
 			var attempts = 0;
 			var timer = setInterval(function () {
 				attempts++;
@@ -266,10 +247,9 @@
 					init();
 				} else if (attempts > 40) {
 					clearInterval(timer);
-					// Запускаем базовую логику только для DOM (минимум, без событий Lampa)
-					// hideMicButton();
+					injectMicFocusOverride();
 					observeSearchDom();
-					console.log("[" + PLUGIN_ID + "] Lampa not detected, DOM-only mode");
+					console.log("[" + PLUGIN_ID + "] Lampa not detected, DOM-only mode (mic focus override active)");
 				}
 			}, 250);
 		}
