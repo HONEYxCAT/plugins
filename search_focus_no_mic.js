@@ -168,6 +168,7 @@
 
 	/**
 	 * Регистрация плагина в Lampa (минимальная, чтобы считался валидным).
+	 * Без добавления компонента настроек, чтобы пункт меню не отображался.
 	 */
 	function registerPlugin() {
 		try {
@@ -182,28 +183,6 @@
 				version: "1.0.1",
 				description: "Отключает подсветку .simple-keyboard-mic.focus и фокусирует строку поиска при открытии.",
 			};
-
-			if (Lampa.SettingsApi && typeof Lampa.SettingsApi.addComponent === "function") {
-				Lampa.SettingsApi.addComponent({
-					component: PLUGIN_ID,
-					name: PLUGIN_NAME,
-					icon: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" xmlns="http://www.w3.org/2000/svg">' + '<rect x="3" y="4" width="18" height="4" rx="1" fill="currentColor"/>' + '<rect x="3" y="10" width="14" height="2" rx="1" fill="currentColor"/>' + '<rect x="3" y="14" width="10" height="2" rx="1" fill="currentColor"/>' + "</svg>",
-				});
-
-				if (typeof Lampa.SettingsApi.addParam === "function") {
-					Lampa.SettingsApi.addParam({
-						component: PLUGIN_ID,
-						param: {
-							name: PLUGIN_ID + "_info",
-							type: "static",
-						},
-						field: {
-							name: PLUGIN_NAME,
-							description: "Сбрасывает стиль .simple-keyboard-mic.focus и устанавливает фокус в строку поиска при открытии.",
-						},
-					});
-				}
-			}
 
 			window["plugin_" + PLUGIN_ID + "_ready"] = true;
 		} catch (e) {
