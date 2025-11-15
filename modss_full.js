@@ -2564,7 +2564,20 @@
 		};
 		this.startSource = function (json) {
 			return new Promise(function (resolve, reject) {
-				var balancers = json && Array.isArray(json.balanser) ? json.balanser : [];
+				var balancers = [];
+				var raw = json && json.balanser;
+				if (Array.isArray(raw)) balancers = raw;
+				else if (raw && typeof raw === "object")
+					balancers = Object.keys(raw).map(function (key) {
+						return raw[key];
+					});
+				if (!balancers.length && json && json.online) {
+					if (Array.isArray(json.online)) balancers = json.online;
+					else if (typeof json.online === "object")
+						balancers = Object.keys(json.online).map(function (key) {
+							return json.online[key];
+						});
+				}
 				if (!balancers.length) {
 					return reject({ error: "Нет данных балансеров" });
 				}
@@ -2700,41 +2713,45 @@
 		this.createSource = function (load) {
 			var _this3 = this;
 			return new Promise(function (resolve, reject) {
-				// Проверяем кеш
 				var now = Date.now();
 				if (sourcesCache && sourcesData && filterSources && now - sourcesCacheTime < CACHE_LIFETIME) {
 					return resolve(sourcesCache);
 				}
 
 				var url = _this3.requestParams(API + "events/" + object.movie.id + "?");
+				var cacheResult = function cacheResult(result) {
+					sourcesCache = result;
+					sourcesCacheTime = now;
+					resolve(result);
+				};
+				var fallbackToLife = function fallbackToLife(prevError) {
+					filter.render().find(".filter--sort").append('<span class="modss-balanser-loader" style="width: 1.2em; height: 1.2em; margin-top: 0; background: url(./img/loader.svg) no-repeat 50% 50%; background-size: contain; margin-left: 0.5em"></span>');
+					_this3
+						.lifeSource()
+						.then(function (lifeJson) {
+							return _this3.startSource(lifeJson);
+						})
+						.then(cacheResult)
+						["catch"](function (err) {
+							reject(prevError || err);
+						});
+				};
+				var handleStart = function handleStart(payload) {
+					_this3
+						.startSource(payload)
+						.then(cacheResult)
+						["catch"](function (err) {
+							fallbackToLife(err);
+						});
+				};
+
 				network.timeout(15000);
 				network.silent(
 					url,
 					function (json) {
 						if (json.error) return reject(json);
-						if (json.life) {
-							filter.render().find(".filter--sort").append('<span class="modss-balanser-loader" style="width: 1.2em; height: 1.2em; margin-top: 0; background: url(./img/loader.svg) no-repeat 50% 50%; background-size: contain; margin-left: 0.5em"></span>');
-							_this3
-								.lifeSource()
-								.then(_this3.startSource)
-								.then(function (result) {
-									// Кешируем результат
-									sourcesCache = result;
-									sourcesCacheTime = now;
-									resolve(result);
-								})
-								["catch"](reject);
-						} else {
-							_this3
-								.startSource(json)
-								.then(function (result) {
-									// Кешируем результат
-									sourcesCache = result;
-									sourcesCacheTime = now;
-									resolve(result);
-								})
-								["catch"](reject);
-						}
+						if (json.life) fallbackToLife();
+						else handleStart(json);
 					},
 					reject,
 				);
