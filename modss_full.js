@@ -2564,7 +2564,11 @@
 		};
 		this.startSource = function (json) {
 			return new Promise(function (resolve, reject) {
-				json.balanser.forEach(function (j) {
+				var balancers = json && Array.isArray(json.balanser) ? json.balanser : [];
+				if (!balancers.length) {
+					return reject({ error: "Нет данных балансеров" });
+				}
+				balancers.forEach(function (j) {
 					var name = j.name.toLowerCase();
 					sources[j.name] = {
 						url: j.url,
@@ -2596,9 +2600,9 @@
 					sourcesData = JSON.parse(JSON.stringify(sources));
 					filterSources = filter_sources.slice();
 
-					resolve("Loaded - " + object.search + " _ " + json.time);
+					resolve("Loaded - " + object.search + " _ " + (json && json.time ? json.time : Date.now()));
 				} else {
-					reject();
+					reject({ error: "Список балансеров пуст" });
 				}
 			});
 		};
