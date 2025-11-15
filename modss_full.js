@@ -352,9 +352,7 @@
 					var Noty = function Noty(e) {
 						var message = "Ничего не найдено";
 						if (e) {
-							if (e.vip) {
-								message = e.vip.title + "<br>" + e.vip.msg;
-							} else if (e.statusText === "timeout") {
+							if (e.statusText === "timeout") {
 								message = e.decode_error + (e.error_time ? " (" + e.error_time + ")" : "");
 							} else if (e.error) {
 								message = "Ошибка: " + e.error;
@@ -610,7 +608,7 @@
 						if (!vip) Lampa.Storage.set("showModssVip", "true");
 
 						if (json.data.block_ip || (!ping_auth && auth == "pending") || (auth && json.data.block) || (auth == "true" && !json.data.vip)) Modss.auth(true);
-						vip = json.data.vip;
+						vip = true;
 
 						var kp_rating = !isNaN(kp) && kp !== null ? parseFloat(kp).toFixed(1) : card.kp_rating || "0.0";
 						var imdb_rating = !isNaN(imdb) && imdb !== null ? parseFloat(imdb).toFixed(1) : card.imdb_rating || "0.0";
@@ -750,12 +748,12 @@
 					})(6, "1(!0 || !0.2) 5.3.4();", "API,if,length,location,reload,window".split(",")),
 				);
 				return new Promise(function (resolve) {
-					logged = true;
+					logged = "true";
 					console.log("Modss", "auth", logged);
 					stopAuthInterval();
 					resolve({
 						success: true,
-						auth: true,
+						auth: "true",
 						stop_auth: true,
 						block_ip: false,
 						interval: 3600000,
@@ -2312,19 +2310,10 @@
 						} else _this.parse(extract);
 					}
 				} else if (type == "sort") {
-					if (a.ghost) {
-						Lampa.Noty.show("Доступно в VIP подписке");
-						setTimeout(function () {
-							var filtr = Lampa.Activity.active().activity.render().find(".filter--sort");
-							Lampa.Controller.toggle("content");
-							Navigator.focus(filtr[0]);
-						}, 50);
-					} else {
-						Modss.getIp(balanser);
-						Lampa.Select.close();
-						object.modss_custom_select = a.source;
-						_this.changeBalanser(a.source);
-					}
+					Modss.getIp(balanser);
+					Lampa.Select.close();
+					object.modss_custom_select = a.source;
+					_this.changeBalanser(a.source);
 				}
 				if (show_filter) filter.render().find(".filter--filter").show();
 				else filter.render().find(".filter--filter").hide();
@@ -2368,7 +2357,6 @@
 					_this.search();
 				})
 				["catch"](function (e) {
-					if (e.vip) return _this.noConnectToServer(e);
 					if (e && !e.find) {
 						console.log("Modss", "init", "Error", e);
 						Lampa.Noty.show("MODSs ОШИБКА ОНЛАЙН [init] -> " + ((e.message && e.message) || e.decode_error || e.error));
@@ -2719,7 +2707,7 @@
 				network.silent(
 					url,
 					function (json) {
-						if (json.vip || json.error) return reject(json);
+						if (json.error) return reject(json);
 						if (json.life) {
 							filter.render().find(".filter--sort").append('<span class="modss-balanser-loader" style="width: 1.2em; height: 1.2em; margin-top: 0; background: url(./img/loader.svg) no-repeat 50% 50%; background-size: contain; margin-left: 0.5em"></span>');
 							_this3
@@ -3323,7 +3311,7 @@
 
 								Lampa.Player.render().find(".player-info__values").show();
 							} else {
-								Lampa.Noty.show(json && json.vip ? json.vip.title + "<br>" + json.vip.msg : Lampa.Lang.translate("modss_nolink") + "<br>" + JSON.stringify(json));
+								Lampa.Noty.show(Lampa.Lang.translate("modss_nolink") + "<br>" + JSON.stringify(json));
 							}
 						},
 						true,
@@ -3812,7 +3800,7 @@
 				if (extract.similars) {
 					this.activity.loader(false);
 					this.similars(extract.results);
-				} else if (json.vip || json.error) return this.noConnectToServer(json);
+				} else if (json.error) return this.noConnectToServer(json);
 				else if (!items || !Lampa.Arrays.getKeys(items).length) {
 					console.log("Modss", "items NULL", items);
 					return this.doesNotAnswer(object.search);
@@ -5967,9 +5955,10 @@
 		};
 		this.noConnectToServer = function (er) {
 			var html = Lampa.Template.get("modss_does_not_answer", {});
+			var customMessage = er && !er.vip ? (er.error ? er.message : er ? er : null) : null;
 			html.find(".online-empty__buttons").remove();
-			html.find(".online-empty__title").text(er && er.vip ? er.vip.title : Lampa.Lang.translate("title_error"));
-			html.find(".online-empty__time").text(er && er.vip ? er.vip.msg : er.error ? er.message : er ? er : Lampa.Lang.translate("modss_does_not_answer_text"));
+			html.find(".online-empty__title").text(Lampa.Lang.translate("title_error"));
+			html.find(".online-empty__time").text(customMessage || Lampa.Lang.translate("modss_does_not_answer_text"));
 			scroll.clear();
 			files.appendHead(html);
 			this.loading(false);
