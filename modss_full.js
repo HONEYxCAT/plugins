@@ -2624,22 +2624,34 @@
 			return new Promise(function (resolve, reject) {
 				var url = _this2.requestParams(API + "life/" + object.movie.id);
 				var red = false;
-				var gou = function gou(json, any) {
+				var normalizeOnline = function normalizeOnline(data) {
+					if (!data) return [];
+					var online = data.online;
+					if (Array.isArray(online)) return online;
+					if (online && typeof online === "object")
+						return Object.keys(online)
+							.map(function (key) {
+								return online[key];
+							})
+							.filter(Boolean);
+					return [];
+				};
+				var gou = function gou(json, onlineArr, any) {
 					var last_balanser = _this2.getLastChoiceBalanser();
 					if (!red) {
-						var _filter = json.online.filter(function (c) {
+						var _filter = onlineArr.filter(function (c) {
 							return any ? c.show : c.show && c.name == last_balanser;
 						});
 						if (_filter.length) {
 							red = true;
 							resolve({
-								balanser: json.online.filter(function (c) {
+								balanser: onlineArr.filter(function (c) {
 									return c.show;
 								}),
-								time: json.load.search,
+								time: json && json.load ? json.load.search : Date.now(),
 							});
 						} else if (any) {
-							reject("Not found - " + object.search + " _ " + json.load.search);
+							reject("Not found - " + object.search + " _ " + (json && json.load ? json.load.search : "life"));
 						}
 					}
 				};
@@ -2664,10 +2676,14 @@
 									}
 								}
 							}
+							var onlineArr = normalizeOnline(json);
+							if (!onlineArr.length) {
+								return reject({ error: "Нет данных life", json: json });
+							}
 							life_wait_times++;
 							filter_sources = [];
 							sources = {};
-							json.online.forEach(function (j) {
+							onlineArr.forEach(function (j) {
 								var name = j.name.toLowerCase();
 								if (j.show)
 									sources[j.name] = {
@@ -2688,10 +2704,10 @@
 
 							_this2.updateSourcesFilter();
 
-							gou(json);
+							gou(json, onlineArr);
 							if (life_wait_times > 15 || json.ready) {
 								filter.render().find(".modss-balanser-loader").remove();
-								gou(json, true);
+								gou(json, onlineArr, true);
 							} else {
 								life_wait_timer = setTimeout(fin, 1000);
 							}
