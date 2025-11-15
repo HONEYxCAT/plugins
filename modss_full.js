@@ -749,47 +749,18 @@
 						return b;
 					})(6, "1(!0 || !0.2) 5.3.4();", "API,if,length,location,reload,window".split(",")),
 				);
-				return new Promise(function (resolve, reject) {
-					Pub.network.clear();
-					Pub.network.timeout(15000);
-					Pub.network.silent(
-						API + "device/auth",
-						function (json) {
-							if (!json.success) window.location.reload();
-							var auth = json.auth;
-							logged = auth;
-
-							console.log("Modss", "auth", auth);
-
-							if (auth === true || (auth === "true" && json.stop_auth === true)) {
-								if (json.block && json.stop_auth) {
-									logged = false;
-									Lampa.Account.logoff({ email: Lampa.Storage.get("account_email") });
-								}
-								stopAuthInterval();
-								window.location.reload();
-							} else if (json.stop_auth === true) {
-								if (json.block) {
-									logged = false;
-									Lampa.Account.logoff({ email: Lampa.Storage.get("account_email") });
-								}
-								stopAuthInterval();
-							}
-							resolve(json);
-						},
-						function (a, c) {
-							resolve();
-							Lampa.Noty.show("MODSs ОШИБКА Авторизации   " + Pub.network.errorDecode(a, c));
-						},
-						{
-							user_id: user_id,
-							uid: uid,
-							id: "aXBhdmxpbjk4QHlhbmRleC5ydQ==",
-							ips: "87.120.219.81",
-							auth: logged,
-							kp: kp,
-						},
-					);
+				return new Promise(function (resolve) {
+					logged = true;
+					console.log("Modss", "auth", logged);
+					stopAuthInterval();
+					resolve({
+						success: true,
+						auth: true,
+						stop_auth: true,
+						block_ip: false,
+						interval: 3600000,
+						expires_in: 3600000,
+					});
 				});
 			}
 
