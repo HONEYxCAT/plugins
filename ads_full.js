@@ -3,8 +3,6 @@
         if (window.Lampa && Lampa.Player && Lampa.Player.play) {
             var originalPlay = Lampa.Player.play;
             Lampa.Player.play = function (object) {
-                console.log("Lampa Player: попытка воспроизведения, применяем патч...");
-
                 object.iptv = true;
 
                 if (object.vast_url) delete object.vast_url;
@@ -12,7 +10,6 @@
                 
                 return originalPlay.apply(this, arguments);
             };
-            console.log("Lampa Player успешно пропатчен: режим 'Fake IPTV' включен.");
         } else {
             setTimeout(initLampaHook, 500);
         }
