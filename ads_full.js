@@ -17,27 +17,27 @@
 
     initLampaHook();
 
-    if (typeof document !== 'undefined') {
-        document.createElement = new Proxy(document.createElement, {
-            apply(target, thisArg, args) {
-                if (args[0] === "video") {
+    // if (typeof document !== 'undefined') {
+    //     document.createElement = new Proxy(document.createElement, {
+    //         apply(target, thisArg, args) {
+    //             if (args[0] === "video") {
                     
-                    let fakeVideo = target.apply(thisArg, args);
+    //                 let fakeVideo = target.apply(thisArg, args);
 
-                    let originalVideoPlay = fakeVideo.play;
-                    fakeVideo.play = function () {
-                        setTimeout(() => {
-                            Object.defineProperty(fakeVideo, 'ended', { get: () => true });
-                            fakeVideo.dispatchEvent(new Event("ended"));
-                        }, 100);
+    //                 let originalVideoPlay = fakeVideo.play;
+    //                 fakeVideo.play = function () {
+    //                     setTimeout(() => {
+    //                         Object.defineProperty(fakeVideo, 'ended', { get: () => true });
+    //                         fakeVideo.dispatchEvent(new Event("ended"));
+    //                     }, 100);
 
-                        return Promise.resolve(); 
-                    };
+    //                     return Promise.resolve(); 
+    //                 };
 
-                    return fakeVideo;
-                }
-                return target.apply(thisArg, args);
-            }
-        });
-    }
+    //                 return fakeVideo;
+    //             }
+    //             return target.apply(thisArg, args);
+    //         }
+    //     });
+    // }
 })();
