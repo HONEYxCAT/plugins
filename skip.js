@@ -9,7 +9,7 @@
         var segment = {
             start: 10,
             end: 60,
-            name: 'TEST SKIP' // Текст, который покажет Lampa
+            name: 'TEST SKIP'
         };
 
         // 1. Проверяем, есть ли объект segments, если нет или он не объект - создаем
@@ -31,7 +31,7 @@
             item.segments.skip.push(segment);
         }
         
-        // Для отладки: добавим маркеры (иногда скины используют это поле)
+        // Для отладки: добавим маркеры
         if(!item.markers) item.markers = [];
         item.markers.push(segment);
     }
@@ -50,7 +50,6 @@
             if (data) {
                 injectSegments(data);
 
-                // Если внутри есть плейлист, прописываем и туда
                 if (data.playlist && Array.isArray(data.playlist)) {
                     data.playlist.forEach(injectSegments);
                 }
