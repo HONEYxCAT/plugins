@@ -1,7 +1,6 @@
 (function () {
 	"use strict";
 
-	// Настройки серверов (Переведено на HTTPS)
 	const SERVERS = ["http://online3.skaz.tv/", "http://online4.skaz.tv/", "http://online5.skaz.tv/"];
 
 	// Выбираем случайный сервер
@@ -22,8 +21,6 @@
 			uid = Lampa.Utils.uid(8).toLowerCase();
 			Lampa.Storage.set("lampac_unic_id", uid);
 		}
-		// Используем реальную почту, если она есть в настройках, иначе заглушку
-		if (!email) email = "guest@lampa.mx";
 
 		const addParam = (u, p) => u + (u.indexOf("?") >= 0 ? "&" : "?") + p;
 
@@ -35,7 +32,6 @@
 		return url;
 	}
 
-	// Заменили Lampa.Reguest на fetch (как в anime_skip)
 	async function request(url) {
 		try {
 			const response = await fetch(url);
@@ -144,7 +140,6 @@
 					}
 				}
 
-				// Используем нативный DOMParser вместо jQuery для надежности на ТВ
 				const parser = new DOMParser();
 				const doc = parser.parseFromString(respText, "text/html");
 				const items = doc.querySelectorAll(".videos__item");
