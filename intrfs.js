@@ -77,7 +77,6 @@
 
     // --- КОМПОНЕНТЫ ИНТЕРФЕЙСА ---
 
-    // Класс для отрисовки верхней инфо-панели
     function InfoBlock() {
         var html;
         var timer;
@@ -92,31 +91,52 @@
         };
 
         this.update = function (data) {
+            var _this = this;
             clearTimeout(timer);
             clearTimeout(timer_logo); 
             network.clear();
             network_logo.clear();
 
-            html.find(".new-interface-info__title").empty(); 
-            html.find(".new-interface-info__description").text(data.overview || Lampa.Lang.translate("full_notext"));
-            
-            // Добавляем класс loading ко всем элементам сразу, скрывая их
-            html.find(".new-interface-info__head, .new-interface-info__details, .new-interface-info__title, .new-interface-info__description").addClass('loading');
+            var method = data.name ? "tv" : "movie";
+            var url = Lampa.TMDB.api(method + "/" + data.id + "?api_key=" + Lampa.TMDB.key() + "&append_to_response=content_ratings,release_dates&language=" + Lampa.Storage.get("language"));
 
+            var isCached = !!loaded[url];
+            
+            // Фон меняем всегда сразу, там своя анимация в движке Lampa
             var bg = data.backdrop_path || data.poster_path || data.img;
             if(bg) Lampa.Background.change(Lampa.Api.img(bg, "w1280"));
-            
-            this.load(data);
+
+            if (isCached) {
+                // Если закэшировано: убираем класс loading (прозрачность 1) и сразу рисуем
+                // Это обеспечивает мгновенное переключение без мерцания
+                html.find(".new-interface-info__head, .new-interface-info__details, .new-interface-info__title, .new-interface-info__description").removeClass('loading');
+                this.draw(loaded[url], false);
+            } else {
+                // Если НЕ закэшировано:
+                // 1. НЕ очищаем текст (пусть висит старый)
+                // 2. Добавляем класс loading. Благодаря CSS (transition) старый текст плавно исчезнет (fade out)
+                html.find(".new-interface-info__head, .new-interface-info__details, .new-interface-info__title, .new-interface-info__description").addClass('loading');
+                
+                // 3. Запускаем загрузку. Пока грузится, зритель видит плавное затухание старого контента
+                this.load(url, data);
+            }
         };
 
-        // Новая функция: отображает всё разом
         this.reveal = function() {
             requestAnimationFrame(function() {
+                // Удаляем класс, запускается transition opacity 0 -> 1 (fade in)
                 html.find(".new-interface-info__head, .new-interface-info__details, .new-interface-info__title, .new-interface-info__description").removeClass('loading');
             });
         };
 
-        this.draw = function (data) {
+        this.draw = function (data, animate) {
+            // Подменяем данные в DOM. 
+            // Если animate=true, то в этот момент элементы имеют opacity: 0 (скрыты), 
+            // поэтому подмена текста происходит незаметно для глаз.
+            
+            html.find(".new-interface-info__description").text(data.overview || Lampa.Lang.translate("full_notext"));
+
+            var clean_title = data.title || data.name;
             var create = ((data.release_date || data.first_air_date || "0000") + "").slice(0, 4);
             var vote = parseFloat((data.vote_average || 0) + "").toFixed(1);
             var head = [];
@@ -140,38 +160,38 @@
             if (data.runtime) details.push(Lampa.Utils.secondsToTime(data.runtime * 60, true));
             if (pg) details.push('<span class="full-start__pg" style="font-size: 0.9em;">' + pg + "</span>");
             
-            // Заполняем HTML, но НЕ убираем класс loading здесь!
             html.find(".new-interface-info__head").empty().append(head.join('<span class="new-interface-info__split">●</span>'));
             html.find(".new-interface-info__details").html(details.join('<span class="new-interface-info__split">●</span>'));
 
-            // Решаем, что делать дальше: грузить лого или показывать текст
-            if (Lampa.Storage.get('logo_glav') != '1') {
-                this.loadLogo(data);
+            if (Lampa.Storage.get('logo_glav') == '1') {
+                this.showTitleText(clean_title, animate);
             } else {
-                this.showTitleText(data.title);
+                this.loadLogo(data, animate, clean_title);
             }
         };
 
-        this.showTitleText = function(text) {
+        this.showTitleText = function(text, animate) {
             var title_el = html.find(".new-interface-info__title");
             title_el.text(text);
-            // Только теперь, когда текст готов, показываем весь блок
-            this.reveal();
+            
+            if(animate) this.reveal();
+            else title_el.removeClass('loading');
         };
 
-        this.loadLogo = function(data) {
+        this.loadLogo = function(data, animate, clean_title) {
             var _this = this;
             clearTimeout(timer_logo);
 
             var method = data.name ? "tv" : "movie";
             var lang = Lampa.Storage.get('language', 'ru');
-            
             var url = Lampa.TMDB.api(method + '/' + data.id + '/images?api_key=' + Lampa.TMDB.key() + '&include_image_language=' + lang + ',en,null');
 
             if(loaded_logos[url]) {
-                this.drawLogo(loaded_logos[url], data.title);
+                this.drawLogo(loaded_logos[url], clean_title, animate);
                 return;
             }
+
+            var delay = animate ? 100 : 0;
 
             timer_logo = setTimeout(function() {
                 network_logo.clear();
@@ -180,31 +200,25 @@
                     var logo = null;
                     if (images.logos && images.logos.length > 0) {
                         var nativeLogo = images.logos.find(function(l) { return l.iso_639_1 === lang; });
-                        
                         if (nativeLogo) {
                             logo = nativeLogo.file_path;
                         } else {
                             var enLogo = images.logos.find(function(l) { return l.iso_639_1 === 'en'; });
-                            if (enLogo) {
-                                logo = enLogo.file_path;
-                            } else {
-                                logo = images.logos[0].file_path;
-                            }
+                            logo = enLogo ? enLogo.file_path : images.logos[0].file_path;
                         }
                     }
                     loaded_logos[url] = logo || 'no_logo';
-                    _this.drawLogo(logo, data.title);
+                    _this.drawLogo(logo, clean_title, animate);
                 }, function() {
-                    // При ошибке тоже отрисовываем (текст)
-                    _this.drawLogo(null, data.title);
+                    _this.drawLogo(null, clean_title, animate);
                 });
-            }, 100);
+            }, delay);
         };
 
-        this.drawLogo = function(logo_path, title_text) {
+        this.drawLogo = function(logo_path, title_text, animate) {
             var _this = this;
             if (Lampa.Storage.get('logo_glav') == '1') {
-                this.showTitleText(title_text);
+                this.showTitleText(title_text, animate);
                 return;
             }
 
@@ -214,37 +228,31 @@
                 var img_url = Lampa.TMDB.image('/t/p/w500' + logo_path.replace('.svg', '.png'));
                 var img = new Image();
                 
-                // Ждем полной загрузки картинки
                 img.onload = function() {
                     title_el.empty().append('<img class="logo-img" src="' + img_url + '" />');
-                    // Картинка загрузилась -> показываем ВЕСЬ блок (текст, описание, лого) одновременно
-                    _this.reveal();
+                    if(animate) _this.reveal();
+                    else title_el.removeClass('loading');
                 };
                 
                 img.onerror = function() {
-                    _this.showTitleText(title_text);
+                    _this.showTitleText(title_text, animate);
                 };
                 
                 img.src = img_url;
             } else {
-                this.showTitleText(title_text);
+                this.showTitleText(title_text, animate);
             }
         };
 
-        this.load = function (data) {
+        this.load = function (url, data) {
             var _this = this;
-            
-            var method = data.name ? "tv" : "movie";
-            var url = Lampa.TMDB.api(method + "/" + data.id + "?api_key=" + Lampa.TMDB.key() + "&append_to_response=content_ratings,release_dates&language=" + Lampa.Storage.get("language"));
-            
-            if (loaded[url]) return this.draw(loaded[url]);
             
             timer = setTimeout(function () {
                 network.clear();
                 network.timeout(5000);
                 network.silent(url, function (movie) {
                     loaded[url] = movie;
-                    _this.draw(movie);
+                    _this.draw(movie, true);
                 });
             }, 150);
         };
@@ -485,12 +493,12 @@
             }
             
             .info-anim {
-                transition: opacity 0.3s ease-out;
+                transition: opacity 0.4s ease-in-out;
                 opacity: 1;
             }
+            /* ВАЖНО: Убрано transition: none, чтобы работало плавное исчезновение */
             .info-anim.loading {
                 opacity: 0;
-                transition: none;
             }
 
             .logo-img {
