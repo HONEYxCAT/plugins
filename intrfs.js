@@ -102,38 +102,25 @@
 
             var isCached = !!loaded[url];
             
-            // Фон меняем всегда сразу, там своя анимация в движке Lampa
             var bg = data.backdrop_path || data.poster_path || data.img;
             if(bg) Lampa.Background.change(Lampa.Api.img(bg, "w1280"));
 
             if (isCached) {
-                // Если закэшировано: убираем класс loading (прозрачность 1) и сразу рисуем
-                // Это обеспечивает мгновенное переключение без мерцания
                 html.find(".new-interface-info__head, .new-interface-info__details, .new-interface-info__title, .new-interface-info__description").removeClass('loading');
                 this.draw(loaded[url], false);
             } else {
-                // Если НЕ закэшировано:
-                // 1. НЕ очищаем текст (пусть висит старый)
-                // 2. Добавляем класс loading. Благодаря CSS (transition) старый текст плавно исчезнет (fade out)
                 html.find(".new-interface-info__head, .new-interface-info__details, .new-interface-info__title, .new-interface-info__description").addClass('loading');
-                
-                // 3. Запускаем загрузку. Пока грузится, зритель видит плавное затухание старого контента
                 this.load(url, data);
             }
         };
 
         this.reveal = function() {
             requestAnimationFrame(function() {
-                // Удаляем класс, запускается transition opacity 0 -> 1 (fade in)
                 html.find(".new-interface-info__head, .new-interface-info__details, .new-interface-info__title, .new-interface-info__description").removeClass('loading');
             });
         };
 
         this.draw = function (data, animate) {
-            // Подменяем данные в DOM. 
-            // Если animate=true, то в этот момент элементы имеют opacity: 0 (скрыты), 
-            // поэтому подмена текста происходит незаметно для глаз.
-            
             html.find(".new-interface-info__description").text(data.overview || Lampa.Lang.translate("full_notext"));
 
             var clean_title = data.title || data.name;
@@ -476,27 +463,46 @@
             .new-interface {
                 position: relative;
                 height: 100%;
+                overflow: hidden;
             }
             .new-interface .card--small.card--wide {
                 width: 18.3em;
             }
+            
+            /* --- ИСПРАВЛЕНИЕ: Отступы и позиционирование --- */
             .new-interface-info {
                 position: relative;
                 padding: 1.5em;
+                /* Увеличили нижний отступ, чтобы текст не прилипал к скроллу */
+                padding-bottom: 3.5em; 
                 height: 24em;
-                z-index: 2;
+                z-index: 10;
+                /* Градиенты убраны полностью */
             }
+            
             .new-interface-info__body {
                 width: 80%;
                 padding-top: 1.1em;
                 text-shadow: 1px 1px 2px black;
             }
             
+            .new-interface .card-line__title {
+                padding-left: 1.5em !important; 
+            }
+
+            .new-interface .scroll__content {
+                padding-bottom: 5em !important;
+            }
+            
+            /* Скролл без масок и градиентов */
+            .new-interface .scroll {
+                transform: translate3d(0,0,0);
+            }
+
             .info-anim {
                 transition: opacity 0.4s ease-in-out;
                 opacity: 1;
             }
-            /* ВАЖНО: Убрано transition: none, чтобы работало плавное исчезновение */
             .info-anim.loading {
                 opacity: 0;
             }
@@ -545,6 +551,8 @@
                 font-size: 0.7em;
                 opacity: 0.7;
             }
+            
+            /* Добавили явный отступ снизу самому тексту для надежности */
             .new-interface-info__description {
                 font-size: 1.2em;
                 font-weight: 300;
@@ -555,6 +563,7 @@
                 line-clamp: 4;
                 -webkit-box-orient: vertical;
                 width: 70%;
+                margin-bottom: 1em;
             }
             .new-interface .card-more__box {
                 padding-bottom: 95%;
