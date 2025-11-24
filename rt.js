@@ -44,7 +44,7 @@ RT.Player.prototype = {
 		var pv = this.options.playerVars || {};
 
 		// Маппинг параметров YouTube -> Rutube
-		if (pv.autoplay) params.push('autoplay=1');
+		// if (pv.autoplay) params.push('autoplay=1');
 		if (pv.start) params.push('t=' + pv.start);
 		if (pv.end) params.push('stopTime=' + pv.end);
 		if (pv.skinColor) params.push('skinColor=' + pv.skinColor);
@@ -69,7 +69,7 @@ RT.Player.prototype = {
 		iframe.setAttribute('webkitAllowFullScreen', '');
 		iframe.setAttribute('mozallowfullscreen', '');
 		iframe.setAttribute('allowfullscreen', '');
-		iframe.setAttribute('allow', 'clipboard-write; autoplay');
+		iframe.setAttribute('allow', 'autoplay; encrypted-media; fullscreen; picture-in-picture; clipboard-write');
 
 		this.container.appendChild(iframe);
 		this.iframe = iframe;
@@ -695,7 +695,6 @@ RT.Player.prototype = {
 							loaded = true;
 
 							rutube.setVolume(volume);
-							rutube.playVideo();
 							rutube.sendCommand({ type: 'player:hideControls', data: {} });
 							window.rutube = rutube;
 							rutube.iframe.blur();
@@ -753,10 +752,6 @@ RT.Player.prototype = {
 							}
 
 							if (state.data === RT.PlayerState.PLAYING/* || state.data === RT.PlayerState.AD_PLAYING*/) {
-								if (needclick) {
-									needclick = false;
-									object.find('.player-video__youtube-needclick').remove();
-								}
 								object.removeClass('ended');
 								listener.send('playing');
 								listener.send('play', {});
