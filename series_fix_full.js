@@ -23,9 +23,9 @@
                 z-index: 2;
 
                 background-color: rgba(0, 0, 0, 0.9);
-                border-radius: 0.8em;
+                border-radius: 1em;
                 padding: 0.5em 0.8em 0.8em 0.8em;
-                min-width: 13em;
+                min-width: 12em;
                 font-family: "SegoeUI", sans-serif;
                 display: flex;
                 flex-direction: column;
@@ -61,7 +61,7 @@
 
             /* Внутренний контейнер */
             .ep-watched-body {
-                font-size: 0.8em;
+                font-size: 1em;
                 display: flex;
                 flex-direction: column;
                 width: 100%;
@@ -85,7 +85,7 @@
 
             /* Спец. стиль текста для фильмов (крупнее) */
             .ep-watched-item.movie-variant {
-                font-size: 1.1em;
+                font-size: 1em;
                 margin-top: 0;
                 color: #fff;
                 text-align: left;
