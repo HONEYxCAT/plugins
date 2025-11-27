@@ -25,7 +25,7 @@
                 background-color: rgba(0, 0, 0, 0.9);
                 border-radius: 1em;
                 padding: 0.5em 0.8em 0.8em 0.8em;
-                min-width: 12em;
+                min-width: 13em;
                 font-family: "SegoeUI", sans-serif;
                 display: flex;
                 flex-direction: column;
@@ -61,7 +61,7 @@
 
             /* Внутренний контейнер */
             .ep-watched-body {
-                font-size: 1em;
+                font-size: 0.9em;
                 display: flex;
                 flex-direction: column;
                 width: 100%;
@@ -102,6 +102,7 @@
             /* --- ПРОГРЕСС БАР --- */
             .ep-time-line {
                 margin-top: 0.5em;
+                margin-bottom: 0.2em;
                 border-radius: 3em;
                 background-color: rgba(255, 255, 255, 0.25); /* Полупрозрачный белый трек */
                 height: 0.3em;
