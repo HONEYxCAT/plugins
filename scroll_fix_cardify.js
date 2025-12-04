@@ -2,7 +2,7 @@
     'use strict';
 
     var style = document.createElement('style');
-    style.innerHTML = '.full-start__background.fix-opacity { opacity: 0.5 !important; }';
+    style.innerHTML = '.full-start__background.fix-opacity { opacity: 1 !important; }';
     document.head.appendChild(style);
 
     function start() {
