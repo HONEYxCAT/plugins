@@ -4,10 +4,7 @@
 	var PLUGIN_ID = "search_focus_no_mic";
 	var PLUGIN_NAME = "Search Focus (No Mic)";
 	var INPUT_SELECTOR = ".search__keypad input.simple-keyboard-input, .search input.simple-keyboard-input";
-	var IPTV_INPUT_SELECTOR = ".settings-input #orsay-keyboard, .settings-input .simple-keyboard-input";
 	var IPTV_CONTAINER_SELECTOR = ".settings-input, .iptv-search, [data-component='iptv']";
-
-	var iptvSearchHandled = false;
 
 	function isIptvContext() {
 		try {
@@ -109,64 +106,6 @@
 		}
 	}
 
-	function focusIptvSearchInput() {
-		try {
-			var input = document.querySelector(IPTV_INPUT_SELECTOR);
-			if (!input || input.offsetParent === null) {
-				return false;
-			}
-
-			if (document.activeElement === input) {
-				return true;
-			}
-
-			if (typeof input.focus === "function") {
-				input.focus();
-			}
-			return true;
-		} catch (e) {
-			console.error("[" + PLUGIN_ID + "] error focusIptvSearchInput:", e);
-			return false;
-		}
-	}
-
-	function disableIptvMicSelection() {
-		try {
-			var container = document.querySelector(".settings-input .simple-keyboard--with-mic");
-			if (!container) return;
-
-			var mic = container.querySelector(".simple-keyboard-mic");
-			if (!mic) return;
-
-			if (mic.classList && mic.classList.contains("selector")) {
-				mic.classList.remove("selector");
-			}
-
-			if (mic.hasAttribute("tabindex")) {
-				mic.removeAttribute("tabindex");
-			}
-
-			if (mic.dataset) {
-				if (mic.dataset.controller) delete mic.dataset.controller;
-				if (mic.dataset.action) delete mic.dataset.action;
-				if (mic.dataset.type) delete mic.dataset.type;
-			}
-		} catch (e) {
-			console.error("[" + PLUGIN_ID + "] disableIptvMicSelection error:", e);
-		}
-	}
-
-	function handleIptvSearchOpen() {
-		if (iptvSearchHandled) return;
-		iptvSearchHandled = true;
-
-		setTimeout(function () {
-			disableIptvMicSelection();
-			focusIptvSearchInput();
-			iptvSearchHandled = false;
-		}, 50);
-	}
-
 	function handleSearchOpen() {
 		if (isIptvContext()) {
 			return;
@@ -224,9 +163,6 @@
 
 				var changed = false;
 
-				var changedLampa = false;
-				var changedIptv = false;
-
 				for (var i = 0; i < mutations.length; i++) {
 					var m = mutations[i];
 					if (!m.addedNodes || !m.addedNodes.length) continue;
@@ -235,25 +171,16 @@
 						var node = m.addedNodes[j];
 						if (!(node instanceof HTMLElement)) continue;
 
-						if (node.matches && node.matches(".settings-input")) {
-							changedIptv = true;
-						} else if (node.querySelector && node.querySelector(".settings-input .simple-keyboard-input")) {
-							changedIptv = true;
-						} else if (node.matches && (node.matches(".search__keypad") || node.matches(".search"))) {
-							changedLampa = true;
-						} else if (node.querySelector && node.querySelector(".search__keypad")) {
-							changedLampa = true;
+						if ((node.matches && (node.matches(".search__keypad") || node.matches(".search"))) || (node.querySelector && (node.querySelector(".search__keypad") || node.querySelector("#orsay-keyboard")))) {
+							changed = true;
+							break;
 						}
 					}
 
-					if (changedLampa || changedIptv) break;
+					if (changed) break;
 				}
 
-				if (changedIptv) {
-					handleIptvSearchOpen();
-				}
-
-				if (changedLampa && !isIptvContext()) {
+				if (changed && !isIptvContext()) {
 					observerActive = true;
 					setTimeout(function () {
 						if (isIptvContext()) {
