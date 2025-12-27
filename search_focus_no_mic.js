@@ -3,7 +3,36 @@
 
 	var PLUGIN_ID = "search_focus_no_mic";
 	var PLUGIN_NAME = "Search Focus (No Mic)";
-	var INPUT_SELECTOR = "#orsay-keyboard.simple-keyboard-input.selector, " + "#orsay-keyboard.simple-keyboard-input, " + ".search__keypad input.simple-keyboard-input";
+	var INPUT_SELECTOR = ".search__keypad input.simple-keyboard-input, .search input.simple-keyboard-input";
+	var IPTV_INPUT_SELECTOR = ".settings-input #orsay-keyboard, .settings-input .simple-keyboard-input";
+	var IPTV_CONTAINER_SELECTOR = ".settings-input, .iptv-search, [data-component='iptv']";
+
+	var iptvSearchHandled = false;
+
+	function isIptvContext() {
+		try {
+			var iptvContainer = document.querySelector(IPTV_CONTAINER_SELECTOR);
+			if (iptvContainer && iptvContainer.offsetParent !== null) {
+				return true;
+			}
+
+			if (typeof Lampa !== "undefined" && Lampa.Activity) {
+				var current = Lampa.Activity.active();
+				if (current && current.component === "iptv") {
+					return true;
+				}
+			}
+
+			var iptvInput = document.querySelector(".settings-input #orsay-keyboard");
+			if (iptvInput && iptvInput.offsetParent !== null) {
+				return true;
+			}
+
+			return false;
+		} catch (e) {
+			return false;
+		}
+	}
 
 	function injectMicFocusOverride() {
 		try {
@@ -47,7 +76,15 @@
 
 	function focusSearchInput() {
 		try {
+			if (isIptvContext()) {
+				return;
+			}
+
 			var input = document.querySelector(INPUT_SELECTOR);
+
+			if (input && input.closest && input.closest(IPTV_CONTAINER_SELECTOR)) {
+				return;
+			}
 
 			if (input && document.activeElement === input) {
 				return;
@@ -57,14 +94,13 @@
 				if (typeof input.focus === "function") {
 					input.focus();
 				}
-
 				return;
 			}
 
-			var searchRoot = document.querySelector(".search, .search__input, .search__keypad");
+			var searchRoot = document.querySelector(".search:not(.settings-input *), .search__keypad:not(.settings-input *)");
 			if (searchRoot) {
-				var textInput = searchRoot.querySelector("input[type='text'], input.simple-keyboard-input, input");
-				if (textInput && typeof textInput.focus === "function" && document.activeElement !== textInput) {
+				var textInput = searchRoot.querySelector("input[type='text'], input.simple-keyboard-input");
+				if (textInput && !textInput.closest(IPTV_CONTAINER_SELECTOR) && typeof textInput.focus === "function" && document.activeElement !== textInput) {
 					textInput.focus();
 				}
 			}
@@ -73,8 +109,72 @@
 		}
 	}
 
-	function handleSearchOpen() {
+	function focusIptvSearchInput() {
+		try {
+			var input = document.querySelector(IPTV_INPUT_SELECTOR);
+			if (!input || input.offsetParent === null) {
+				return false;
+			}
+
+			if (document.activeElement === input) {
+				return true;
+			}
+
+			if (typeof input.focus === "function") {
+				input.focus();
+			}
+			return true;
+		} catch (e) {
+			console.error("[" + PLUGIN_ID + "] error focusIptvSearchInput:", e);
+			return false;
+		}
+	}
+
+	function disableIptvMicSelection() {
+		try {
+			var container = document.querySelector(".settings-input .simple-keyboard--with-mic");
+			if (!container) return;
+
+			var mic = container.querySelector(".simple-keyboard-mic");
+			if (!mic) return;
+
+			if (mic.classList && mic.classList.contains("selector")) {
+				mic.classList.remove("selector");
+			}
+
+			if (mic.hasAttribute("tabindex")) {
+				mic.removeAttribute("tabindex");
+			}
+
+			if (mic.dataset) {
+				if (mic.dataset.controller) delete mic.dataset.controller;
+				if (mic.dataset.action) delete mic.dataset.action;
+				if (mic.dataset.type) delete mic.dataset.type;
+			}
+		} catch (e) {
+			console.error("[" + PLUGIN_ID + "] disableIptvMicSelection error:", e);
+		}
+	}
+
+	function handleIptvSearchOpen() {
+		if (iptvSearchHandled) return;
+		iptvSearchHandled = true;
+
 		setTimeout(function () {
+			disableIptvMicSelection();
+			focusIptvSearchInput();
+			iptvSearchHandled = false;
+		}, 50);
+	}
+
+	function handleSearchOpen() {
+		if (isIptvContext()) {
+			return;
+		}
+		setTimeout(function () {
+			if (isIptvContext()) {
+				return;
+			}
 			focusSearchInput();
 			disableMicSelection();
 		}, 100);
@@ -101,6 +201,9 @@
 
 		Lampa.Listener.follow("search", function (e) {
 			try {
+				if (isIptvContext()) {
+					return;
+				}
 				if (e.type === "open" || e.type === "start" || e.type === "visible") {
 					handleSearchOpen();
 				}
@@ -121,6 +224,9 @@
 
 				var changed = false;
 
+				var changedLampa = false;
+				var changedIptv = false;
+
 				for (var i = 0; i < mutations.length; i++) {
 					var m = mutations[i];
 					if (!m.addedNodes || !m.addedNodes.length) continue;
@@ -129,18 +235,31 @@
 						var node = m.addedNodes[j];
 						if (!(node instanceof HTMLElement)) continue;
 
-						if ((node.matches && (node.matches(".search__keypad") || node.matches(".search"))) || (node.querySelector && (node.querySelector(".search__keypad") || node.querySelector("#orsay-keyboard")))) {
-							changed = true;
-							break;
+						if (node.matches && node.matches(".settings-input")) {
+							changedIptv = true;
+						} else if (node.querySelector && node.querySelector(".settings-input .simple-keyboard-input")) {
+							changedIptv = true;
+						} else if (node.matches && (node.matches(".search__keypad") || node.matches(".search"))) {
+							changedLampa = true;
+						} else if (node.querySelector && node.querySelector(".search__keypad")) {
+							changedLampa = true;
 						}
 					}
 
-					if (changed) break;
+					if (changedLampa || changedIptv) break;
 				}
 
-				if (changed) {
+				if (changedIptv) {
+					handleIptvSearchOpen();
+				}
+
+				if (changedLampa && !isIptvContext()) {
 					observerActive = true;
 					setTimeout(function () {
+						if (isIptvContext()) {
+							observerActive = false;
+							return;
+						}
 						focusSearchInput();
 						disableMicSelection();
 						observerActive = false;
