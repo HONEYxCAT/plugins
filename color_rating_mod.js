@@ -1,7 +1,6 @@
 (function () {
 	"use strict";
 
-	// Основной объект плагина, оставляем только то, что нужно для подсветки рейтингов
 	var InterFaceMod = {
 		name: "interface_mod_ratings_only",
 		version: "1.0.0",
@@ -11,21 +10,17 @@
 		},
 	};
 
-	// Функция для изменения цвета рейтинга фильмов и сериалов
 	function updateVoteColors() {
 		if (!InterFaceMod.settings.colored_ratings) return;
 
-		// Функция для изменения цвета элемента в зависимости от рейтинга
 		function applyColorByRating(element) {
 			var $el = $(element);
 			var voteText = $el.text().trim();
 
-			// Если значение оканчивается на одиночную 'K' (например, 3.6K), игнорируем подсветку,
 			if (/^\d+(\.\d+)?K$/.test(voteText)) {
 				return;
 			}
 
-			// Регулярное выражение для извлечения числа из текста
 			var match = voteText.match(/(\d+(\.\d+)?)/);
 			if (!match) return;
 
@@ -51,7 +46,6 @@
 			}
 		}
 
-		// Обрабатываем рейтинги на карточках, в списках и в детальных страницах
 		$(".card__vote").each(function () {
 			applyColorByRating(this);
 		});
@@ -65,14 +59,11 @@
 		});
 	}
 
-	// Наблюдатель за изменениями в DOM для обновления цветов рейтинга
 	function setupVoteColorsObserver() {
 		if (!InterFaceMod.settings.colored_ratings) return;
 
-		// Первичное обновление
 		setTimeout(updateVoteColors, 300);
 
-		// Наблюдаем за изменениями DOM и пере-применяем цвета
 		var observer = new MutationObserver(function () {
 			setTimeout(updateVoteColors, 100);
 		});
@@ -83,7 +74,6 @@
 		});
 	}
 
-	// Слушатель для детальных страниц (карточек)
 	function setupVoteColorsForDetailPage() {
 		if (!InterFaceMod.settings.colored_ratings) return;
 
@@ -96,9 +86,7 @@
 		});
 	}
 
-	// Инициализация плагина
 	function startPlugin() {
-		// Если есть сохранённое значение настройки подсветки, учитываем его
 		if (window.Lampa && Lampa.Storage) {
 			var stored = Lampa.Storage.get("colored_ratings");
 			if (typeof stored === "boolean") {
@@ -112,7 +100,6 @@
 		}
 	}
 
-	// Ждем готовности приложения Lampa, если оно есть
 	if (window.Lampa) {
 		if (window.appready) {
 			startPlugin();
@@ -124,7 +111,6 @@
 			});
 		}
 	} else {
-		// Если Lampa нет, просто пробуем применить подсветку после загрузки DOM
 		if (document.readyState === "complete" || document.readyState === "interactive") {
 			startPlugin();
 		} else {
@@ -132,7 +118,6 @@
 		}
 	}
 
-	// Регистрация плагина в манифесте (минимальная)
 	if (window.Lampa) {
 		Lampa.Manifest = Lampa.Manifest || {};
 		Lampa.Manifest.plugins = Lampa.Manifest.plugins || {};
@@ -143,6 +128,5 @@
 		};
 	}
 
-	// Экспортируем объект для внешнего доступа при необходимости
 	window.interface_mod_ratings_only = InterFaceMod;
 })();

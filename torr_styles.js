@@ -1,23 +1,15 @@
 (function () {
 	"use strict";
 
-	/**
-	 * Имя плагина (используется только внутренне, без регистрации меню/настроек)
-	 */
 	var PLUGIN_ID = "torrent_styles_mod";
 	var PLUGIN_NAME = "Torrent Styles MOD";
 
-	/**
-	 * Базовые стили для торрентов
-	 */
 	var STYLES = {
-		// Подсветка "Seeds" если значение высокое
 		".torrent-item__seeds span.high-seeds": {
 			color: "#00b300",
 			"font-weight": "bold",
 		},
 
-		// Подсветка "Битрейт" если значение высокое
 		".torrent-item__bitrate span.high-bitrate": {
 			color: "#b30000",
 			"font-weight": "bold",
@@ -39,15 +31,11 @@
 			border: "none",
 		},
 
-		// Небольшой отступ для области со списком торрентов
 		".scroll__body": {
 			margin: "5px",
 		},
 	};
 
-	/**
-	 * Вставка CSS-стилей в документ
-	 */
 	function injectStyles() {
 		try {
 			var style = document.createElement("style");
@@ -71,19 +59,14 @@
 		}
 	}
 
-	/**
-	 * Обновление стилей элементов торрентов
-	 */
 	function updateTorrentStyles() {
 		try {
-			// Подсветка "Seeds" если значение > 10
 			document.querySelectorAll(".torrent-item__seeds span").forEach(function (span) {
 				var value = parseInt(span.textContent, 10) || 0;
 				if (value > 10) span.classList.add("high-seeds");
 				else span.classList.remove("high-seeds");
 			});
 
-			// Подсветка "Битрейт" если значение > 50
 			document.querySelectorAll(".torrent-item__bitrate span").forEach(function (span) {
 				var value = parseFloat(span.textContent) || 0;
 				if (value > 50) span.classList.add("high-bitrate");
@@ -94,9 +77,6 @@
 		}
 	}
 
-	/**
-	 * Наблюдение за изменениями DOM для обновления стилей
-	 */
 	function observeDom() {
 		try {
 			var observer = new MutationObserver(function (mutations) {
@@ -118,9 +98,6 @@
 		}
 	}
 
-	/**
-	 * Регистрация плагина в Lampa и отметка готовности.
-	 */
 	function registerPlugin() {
 		try {
 			if (typeof Lampa !== "undefined") {
@@ -141,9 +118,6 @@
 		}
 	}
 
-	/**
-	 * Ждём готовности приложения, чтобы вызвать регистрацию.
-	 */
 	function waitForAppReady() {
 		try {
 			if (typeof Lampa !== "undefined") {
@@ -175,9 +149,6 @@
 		}
 	}
 
-	/**
-	 * Старт плагина: только стили и логика без пункта меню/настроек
-	 */
 	function start() {
 		injectStyles();
 		observeDom();
