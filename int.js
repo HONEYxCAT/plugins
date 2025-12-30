@@ -80,13 +80,21 @@
 		var infoPanel = new InfoPanel();
 		infoPanel.create();
 
-		var backgroundImage = document.createElement("img");
-		backgroundImage.className = "full-start__background";
+		var backgroundWrapper = document.createElement("div");
+		backgroundWrapper.className = "full-start__background-wrapper";
+
+		var bg1 = document.createElement("img");
+		bg1.className = "full-start__background";
+		var bg2 = document.createElement("img");
+		bg2.className = "full-start__background";
+
+		backgroundWrapper.appendChild(bg1);
+		backgroundWrapper.appendChild(bg2);
 
 		var state = {
 			main: mainInstance,
 			info: infoPanel,
-			background: backgroundImage,
+			background: backgroundWrapper,
 			infoElement: null,
 			backgroundTimer: null,
 			backgroundLast: "",
@@ -100,16 +108,16 @@
 
 				container.classList.add("new-interface");
 
-				if (!backgroundImage.parentElement) {
-					container.insertBefore(backgroundImage, container.firstChild || null);
+				if (!backgroundWrapper.parentElement) {
+					container.insertBefore(backgroundWrapper, container.firstChild || null);
 				}
 
 				var infoElement = infoPanel.render(true);
 				this.infoElement = infoElement;
 
 				if (infoElement && infoElement.parentNode !== container) {
-					if (backgroundImage.parentElement === container) {
-						container.insertBefore(infoElement, backgroundImage.nextSibling);
+					if (backgroundWrapper.parentElement === container) {
+						container.insertBefore(infoElement, backgroundWrapper.nextSibling);
 					} else {
 						container.insertBefore(infoElement, container.firstChild || null);
 					}
@@ -126,29 +134,40 @@
 			},
 
 			updateBackground: function (data) {
-				var backdropUrl = data && data.backdrop_path ? Lampa.Api.img(data.backdrop_path, "w1280") : "";
+				var show_bg = Lampa.Storage.get("show_background", true);
+				var backdropUrl = (data && data.backdrop_path && show_bg) ? Lampa.Api.img(data.backdrop_path, "w1280") : "";
 
-				if (!backdropUrl || backdropUrl === this.backgroundLast) return;
+				if (backdropUrl === this.backgroundLast) return;
 
 				clearTimeout(this.backgroundTimer);
 				var self = this;
 
 				this.backgroundTimer = setTimeout(function () {
-					backgroundImage.classList.remove("loaded");
+					if (!backdropUrl) {
+						bg1.classList.remove("active");
+						bg2.classList.remove("active");
+						self.backgroundLast = "";
+						return;
+					}
 
-					backgroundImage.onload = function () {
-						backgroundImage.classList.add("loaded");
-					};
+					var nextLayer = bg1.classList.contains("active") ? bg2 : bg1;
+					var prevLayer = bg1.classList.contains("active") ? bg1 : bg2;
 
-					backgroundImage.onerror = function () {
-						backgroundImage.classList.remove("loaded");
+					var img = new Image();
+					img.onload = function () {
+						if (backdropUrl !== self.backgroundLast) return;
+
+						nextLayer.src = backdropUrl;
+						nextLayer.classList.add("active");
+
+						setTimeout(function () {
+							if (backdropUrl !== self.backgroundLast) return;
+							prevLayer.classList.remove("active");
+						}, 100);
 					};
 
 					self.backgroundLast = backdropUrl;
-
-					setTimeout(function () {
-						backgroundImage.src = self.backgroundLast;
-					}, 50);
+					img.src = backdropUrl;
 				}, 100);
 			},
 
@@ -169,8 +188,8 @@
 					this.infoElement.parentNode.removeChild(this.infoElement);
 				}
 
-				if (backgroundImage && backgroundImage.parentNode) {
-					backgroundImage.parentNode.removeChild(backgroundImage);
+				if (backgroundWrapper && backgroundWrapper.parentNode) {
+					backgroundWrapper.parentNode.removeChild(backgroundWrapper);
 				}
 
 				this.attached = false;
@@ -333,8 +352,8 @@
 	function getWideStyles() {
 		return `<style>
 					.items-line__title .full-person__photo {
-						width: 1.5em !important;
-						height: 1.5em !important;
+						width: 1.8em !important;
+						height: 1.8em !important;
 					}
 					.items-line__title .full-person--svg .full-person__photo {
 						padding: 0.5em !important;
@@ -413,9 +432,27 @@
 					.new-interface .card-more__box {
 						padding-bottom: 95%;
 					}
+					.new-interface .full-start__background-wrapper {
+						position: absolute;
+						top: 0;
+						left: 0;
+						width: 100%;
+						height: 100%;
+						z-index: -1;
+						pointer-events: none;
+					}
 					.new-interface .full-start__background {
+						position: absolute;
 						height: 108%;
+						width: 100%;
 						top: -5em;
+						left: 0;
+						opacity: 0;
+						object-fit: cover;
+						transition: opacity 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+					}
+					.new-interface .full-start__background.active {
+						opacity: 1;
 					}
 					.new-interface .full-start__rate {
 						font-size: 1.3em;
@@ -463,8 +500,8 @@
 						width: 18.3em;
 					}
 					.items-line__title .full-person__photo {
-						width: 1.5em !important;
-						height: 1.5em !important;
+						width: 1.8em !important;
+						height: 1.8em !important;
 					}
 					.items-line__title .full-person--svg .full-person__photo {
 						padding: 0.5em !important;
@@ -537,9 +574,27 @@
 					.new-interface .card-more__box {
 						padding-bottom: 150%;
 					}
+					.new-interface .full-start__background-wrapper {
+						position: absolute;
+						top: 0;
+						left: 0;
+						width: 100%;
+						height: 100%;
+						z-index: -1;
+						pointer-events: none;
+					}
 					.new-interface .full-start__background {
+						position: absolute;
 						height: 108%;
+						width: 100%;
 						top: -5em;
+						left: 0;
+						opacity: 0;
+						object-fit: cover;
+						transition: opacity 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+					}
+					.new-interface .full-start__background.active {
+						opacity: 1;
 					}
 					.new-interface .full-start__rate {
 						font-size: 1.2em;
@@ -629,20 +684,9 @@
 
 
 		if (Lampa.Storage.get("logo_show", true)) {
-			var check_type = data.name ? "tv" : "movie";
-			var check_lang = Lampa.Storage.get("language");
-			var check_key = "logo_cache_v2_" + check_type + "_" + data.id + "_" + check_lang;
-			var check_cached = Lampa.Storage.get(check_key);
-
-			if (check_cached && check_cached !== "none") {
-				title.text(data.title || data.name || "");
-				title.css({ opacity: 0 });
-				this.showLogo(data, currentRenderId);
-			} else {
-				title.text(data.title || data.name || "");
-				title.css({ opacity: 1 });
-				this.showLogo(data, currentRenderId);
-			}
+			title.text(data.title || data.name || "");
+			title.css({ opacity: 1 });
+			this.showLogo(data, currentRenderId);
 		} else {
 			title.text(data.title || data.name || "");
 			title.css({ opacity: 1 });
@@ -773,25 +817,20 @@
 			if (dom_title) start_text_height = dom_title.getBoundingClientRect().height;
 
 			if (fromCache) {
-				img.onload = function () {
-					if (renderId && renderId !== _this.lastRenderId) return;
+				if (dom_title) start_text_height = dom_title.getBoundingClientRect().height;
 
-					if (dom_title) start_text_height = dom_title.getBoundingClientRect().height;
+				moveHeadToDetails(false);
+				applyFinalStyles(img, start_text_height);
 
-					moveHeadToDetails(false);
-					applyFinalStyles(img, start_text_height);
+				title_elem.empty().append(img);
+				title_elem.css({ opacity: "1", transition: "none" });
 
-					title_elem.empty().append(img);
-					title_elem.css({ opacity: "1", transition: "none" });
-
-					if (dom_title) {
-						dom_title.style.display = "block";
-						dom_title.style.height = "";
-						dom_title.style.transition = "none";
-					}
-					img.style.opacity = "1";
-				};
-				if (img.complete) img.onload();
+				if (dom_title) {
+					dom_title.style.display = "block";
+					dom_title.style.height = "";
+					dom_title.style.transition = "none";
+				}
+				img.style.opacity = "1";
 				return;
 			}
 
@@ -863,7 +902,14 @@
 			var cached_url = Lampa.Storage.get(cache_key);
 
 			if (cached_url && cached_url !== "none") {
-				startLogoAnimation(cached_url, true);
+				var img_cache = new Image();
+				img_cache.src = cached_url;
+
+				if (img_cache.complete) {
+					startLogoAnimation(cached_url, true);
+				} else {
+					startLogoAnimation(cached_url, false);
+				}
 			} else {
 				var url = Lampa.TMDB.api(type + "/" + data.id + "/images?api_key=" + Lampa.TMDB.key() + "&include_image_language=" + language + ",en,null");
 
@@ -952,15 +998,7 @@
 
 		var show_logo = Lampa.Storage.get("logo_show", true);
 
-		if (!show_logo) {
-			if (year !== "0000") {
-				headInfo.push("<span>" + year + "</span>");
-			}
 
-			if (countries.length > 0) {
-				headInfo.push(countries.join(", "));
-			}
-		}
 
 		if (Lampa.Storage.get("rat") !== false) {
 			if (rating > 0) {
@@ -1059,17 +1097,15 @@
 			}
 		}
 
-		if (show_logo) {
-			var yc = [];
-			if (year !== "0000") yc.push("<span>" + year + "</span>");
-			if (countries.length > 0) yc.push(countries.join(", "));
+		var yc = [];
+		if (year !== "0000") yc.push("<span>" + year + "</span>");
+		if (countries.length > 0) yc.push(countries.join(", "));
 
-			if (yc.length > 0) {
-				detailsInfo.push(yc.join(", "));
-			}
+		if (yc.length > 0) {
+			detailsInfo.push(yc.join(", "));
 		}
 
-		this.html.find(".new-interface-info__head").empty().append(headInfo.join(", ")).addClass("visible");
+		this.html.find(".new-interface-info__head").empty().append(headInfo.join(", ")).toggleClass("visible", headInfo.length > 0);
 		this.html.find(".new-interface-info__details").html(detailsInfo.join('<span class="new-interface-info__split">&#9679;</span>')).addClass("visible");
 	};
 
@@ -1218,6 +1254,17 @@
 
 		Lampa.SettingsApi.addParam({
 			component: "style_interface",
+			param: { name: "show_background", type: "trigger", default: true },
+			field: { name: "Отображать постеры на фоне" },
+			onChange: function (value) {
+				if (!value) {
+					$(".full-start__background").removeClass("active");
+				}
+			},
+		});
+
+		Lampa.SettingsApi.addParam({
+			component: "style_interface",
 			param: { name: "status", type: "trigger", default: true },
 			field: { name: "Показывать статус фильма/сериала" },
 		});
@@ -1329,9 +1376,9 @@
 		function setDefaultSettings() {
 			Lampa.Storage.set("int_plug", "true");
 			Lampa.Storage.set("wide_post", "true");
-
 			Lampa.Storage.set("desc", "true");
 			Lampa.Storage.set("logo_show", "true");
+			Lampa.Storage.set("show_background", "true");
 			Lampa.Storage.set("status", "true");
 			Lampa.Storage.set("seas", "false");
 			Lampa.Storage.set("eps", "false");
