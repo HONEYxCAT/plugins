@@ -12,6 +12,9 @@
 	addStyles();
 	initializeSettings();
 
+	setupVoteColorsObserver();
+	setupVoteColorsForDetailPage();
+
 	var mainMaker = Lampa.Maker.map("Main");
 	if (!mainMaker || !mainMaker.Items || !mainMaker.Create) return;
 
@@ -330,15 +333,15 @@
 	function getWideStyles() {
 		return `<style>
 					.items-line__title .full-person__photo {
-						width: 1.2em !important;
-						height: 1.2em !important;
+						width: 1.5em !important;
+						height: 1.5em !important;
 					}
 					.items-line__title .full-person--svg .full-person__photo {
-						padding: 0.4em !important;
-						margin-right: 0.35em !important;
+						padding: 0.5em !important;
+						margin-right: 0.5em !important;
 					}
 					.items-line__title .full-person__photo {
-						margin-right: 0.35em !important;
+						margin-right: 0.5em !important;
 					}
 					.items-line {
 						padding-bottom: 4em !important;
@@ -354,7 +357,7 @@
 					.new-interface-info {
 						position: relative;
 						padding: 1.5em;
-						height: 26em;
+						height: 27.5em;
 					}
 					.new-interface-info__body {
 						width: 80%;
@@ -448,6 +451,7 @@
 					}
 					.logo-moved-head { transition: opacity 0.4s ease; }
 					.logo-moved-separator { transition: opacity 0.4s ease; }
+					.new-interface .card .card__age, .new-interface .card .card__title { display: none !important; }
 				</style>`;
 	}
 
@@ -455,22 +459,19 @@
 		return `<style>
 					.new-interface-info__head, .new-interface-info__details{ opacity: 0; transition: opacity 0.5s ease; min-height: 2.2em !important;}
 					.new-interface-info__head.visible, .new-interface-info__details.visible{ opacity: 1; }
-					.new-interface .card.card--wide {
+					.new-interface .card.card--wide{
 						width: 18.3em;
 					}
 					.items-line__title .full-person__photo {
-						width: 1.2em !important;
-						height: 1.2em !important;
+						width: 1.5em !important;
+						height: 1.5em !important;
 					}
 					.items-line__title .full-person--svg .full-person__photo {
-						padding: 0.4em !important;
-						margin-right: 0.35em !important;
+						padding: 0.5em !important;
+						margin-right: 0.5em !important;
 					}
 					.items-line__title .full-person__photo {
-						margin-right: 0.35em !important;
-					}
-					.items-line__head {
-						margin-bottom: 1em !important;
+						margin-right: 0.5em !important;
 					}
 					.card .card__age,
 					.card .card__title {
@@ -479,7 +480,7 @@
 					.new-interface-info {
 						position: relative;
 						padding: 1.5em;
-						height: 17.4em;
+						height: 19.8em;
 					}
 					.new-interface-info__body {
 						width: 80%;
@@ -574,6 +575,7 @@
 					}
 					.logo-moved-head { transition: opacity 0.4s ease; }
 					.logo-moved-separator { transition: opacity 0.4s ease; }
+					.new-interface .card .card__age, .new-interface .card .card__title { display: none !important; }
 				</style>`;
 	}
 
@@ -962,7 +964,28 @@
 
 		if (Lampa.Storage.get("rat") !== false) {
 			if (rating > 0) {
-				detailsInfo.push('<div class="full-start__rate"><div>' + rating + "</div><div>TMDB</div></div>");
+				var rate_style = "";
+
+				if (Lampa.Storage.get("colored_ratings")) {
+					var vote_num = parseFloat(rating);
+					var color = "";
+
+					if (vote_num >= 0 && vote_num <= 3) {
+						color = "red";
+					} else if (vote_num > 3 && vote_num < 6) {
+						color = "orange";
+					} else if (vote_num >= 6 && vote_num < 7) {
+						color = "cornflowerblue";
+					} else if (vote_num >= 7 && vote_num < 8) {
+						color = "darkmagenta";
+					} else if (vote_num >= 8 && vote_num <= 10) {
+						color = "lawngreen";
+					}
+
+					if (color) rate_style = ' style="color: ' + color + '"';
+				}
+
+				detailsInfo.push('<div class="full-start__rate"' + rate_style + "><div>" + rating + "</div><div>TMDB</div></div>");
 			}
 		}
 
@@ -1068,6 +1091,78 @@
 		}
 	};
 
+	function updateVoteColors() {
+		if (!Lampa.Storage.get("colored_ratings")) return;
+
+		function applyColorByRating(element) {
+			var $el = $(element);
+			var voteText = $el.text().trim();
+
+			if (/^\d+(\.\d+)?K$/.test(voteText)) {
+				return;
+			}
+
+			var match = voteText.match(/(\d+(\.\d+)?)/);
+			if (!match) return;
+
+			var vote = parseFloat(match[0]);
+			if (isNaN(vote)) return;
+
+			var color = "";
+
+			if (vote >= 0 && vote <= 3) {
+				color = "red";
+			} else if (vote > 3 && vote < 6) {
+				color = "orange";
+			} else if (vote >= 6 && vote < 7) {
+				color = "cornflowerblue";
+			} else if (vote >= 7 && vote < 8) {
+				color = "darkmagenta";
+			} else if (vote >= 8 && vote <= 10) {
+				color = "lawngreen";
+			}
+
+			if (color) {
+				$el.css("color", color);
+			}
+		}
+
+		$(".card__vote").each(function () {
+			applyColorByRating(this);
+		});
+
+		$(".full-start__rate, .full-start-new__rate").each(function () {
+			applyColorByRating(this);
+		});
+
+		$(".info__rate, .card__imdb-rate, .card__kinopoisk-rate").each(function () {
+			applyColorByRating(this);
+		});
+	}
+
+	function setupVoteColorsObserver() {
+		setTimeout(updateVoteColors, 300);
+
+		var observer = new MutationObserver(function () {
+			setTimeout(updateVoteColors, 100);
+		});
+
+		observer.observe(document.body, {
+			childList: true,
+			subtree: true,
+		});
+	}
+
+	function setupVoteColorsForDetailPage() {
+		if (!window.Lampa || !Lampa.Listener) return;
+
+		Lampa.Listener.follow("full", function (data) {
+			if (data.type === "complite") {
+				setTimeout(updateVoteColors, 100);
+			}
+		});
+	}
+
 	function initializeSettings() {
 		Lampa.Settings.listener.follow("open", function (event) {
 			if (event.name == "main") {
@@ -1108,11 +1203,6 @@
 			},
 		});
 
-		Lampa.SettingsApi.addParam({
-			component: "style_interface",
-			param: { name: "wide_post", type: "trigger", default: true },
-			field: { name: "Широкие постеры" },
-		});
 
 		Lampa.SettingsApi.addParam({
 			component: "style_interface",
@@ -1168,6 +1258,65 @@
 			field: { name: "Показывать рейтинг фильма" },
 		});
 
+		Lampa.SettingsApi.addParam({
+			component: "style_interface",
+			param: { name: "colored_ratings", type: "trigger", default: true },
+			field: { name: "Цветные рейтинги" },
+			onChange: function (value) {
+				if (value) {
+					updateVoteColors();
+				} else {
+					$(".card__vote, .full-start__rate, .full-start-new__rate, .info__rate, .card__imdb-rate, .card__kinopoisk-rate").css("color", "");
+				}
+			},
+		});
+
+		Lampa.SettingsApi.addParam({
+			component: "style_interface",
+			param: { name: "wide_post", type: "trigger", default: true },
+			field: { name: "Широкие постеры", description: "Лампа будет перезагружена" },
+			onChange: function () {
+				window.location.reload();
+			},
+		});
+
+		Lampa.SettingsApi.addParam({
+			component: "style_interface",
+			param: { name: "int_clear_logo_cache", type: "static" },
+			field: { name: "Очистить кеш логотипов", description: "Лампа будет перезагружена" },
+			onRender: function (item) {
+				item.on("hover:enter", function () {
+					Lampa.Select.show({
+						title: "Очистить кеш логотипов?",
+						items: [
+							{ title: "Да", confirm: true },
+							{ title: "Нет" },
+						],
+						onSelect: function (a) {
+							if (a.confirm) {
+								var keys = [];
+								for (var i = 0; i < localStorage.length; i++) {
+									var key = localStorage.key(i);
+									if (key.indexOf("logo_cache_v2_") !== -1) {
+										keys.push(key);
+									}
+								}
+								keys.forEach(function (key) {
+									localStorage.removeItem(key);
+								});
+								window.location.reload();
+							} else {
+								Lampa.Controller.toggle("settings_component");
+							}
+						},
+						onBack: function () {
+							Lampa.Controller.toggle("settings_component");
+						},
+					});
+				});
+			}
+		});
+
 		var initInterval = setInterval(function () {
 			if (typeof Lampa !== "undefined") {
 				clearInterval(initInterval);
@@ -1190,6 +1339,7 @@
 			Lampa.Storage.set("vremya", "true");
 			Lampa.Storage.set("ganr", "true");
 			Lampa.Storage.set("rat", "true");
+			Lampa.Storage.set("colored_ratings", "true");
 		}
 	}
 })();
