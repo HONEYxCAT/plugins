@@ -329,123 +329,148 @@
 
 	function getWideStyles() {
 		return `<style>
-				.new-interface-info__head, .new-interface-info__details{ opacity: 0; transition: opacity 0.5s ease; min-height: 2.2em !important;}
-				.new-interface-info__head.visible, .new-interface-info__details.visible{ opacity: 1; }
-				.new-interface .card.card--wide {
-					width: 18.3em;
-				}
-				.new-interface .card.card--small {
-					width: 18.3em;
-				}
-				.new-interface-info {
-					position: relative;
-					padding: 1.5em;
-					height: 26em;
-				}
-				.new-interface-info__body {
-					width: 80%;
-					padding-top: 1.1em;
-				}
-				.new-interface-info__head {
-					color: rgba(255, 255, 255, 0.6);
-					font-size: 1.3em;
-					min-height: 1em;
-				}
-				.new-interface-info__head span {
-					color: #fff;
-				}
-				.new-interface-info__title {
-					font-size: 4em;
-					font-weight: 600;
-					margin-bottom: 0.3em;
-					overflow: hidden;
-					-o-text-overflow: '.';
-					text-overflow: '.';
-					display: -webkit-box;
-					-webkit-line-clamp: 1;
-					line-clamp: 1;
-					-webkit-box-orient: vertical;
-					margin-left: -0.03em;
-					line-height: 1.3;
-				}
-				.new-interface-info__details {
-					margin-bottom: 1.6em;
-					display: flex;
-					align-items: center;
-					flex-wrap: wrap;
-					min-height: 1.9em;
-					font-size: 1.3em;
-				}
-				.new-interface-info__split {
-					margin: 0 1em;
-					font-size: 0.7em;
-				}
-				.new-interface-info__description {
-					font-size: 1.4em;
-					font-weight: 310;
-					line-height: 1.3;
-					overflow: hidden;
-					-o-text-overflow: '.';
-					text-overflow: '.';
-					display: -webkit-box;
-					-webkit-line-clamp: 3;
-					line-clamp: 3;
-					-webkit-box-orient: vertical;
-					width: 65%;
-				}
-				.new-interface .card-more__box {
-					padding-bottom: 95%;
-				}
-				.new-interface .full-start__background {
-					height: 108%;
-					top: -5em;
-				}
-				.new-interface .full-start__rate {
-					font-size: 1.3em;
-					margin-right: 0;
-				}
-				.new-interface .card__promo {
-					display: none;
-				}
-				.new-interface .card.card--wide + .card-more .card-more__box {
-					padding-bottom: 95%;
-				}
-				.new-interface .card.card--wide .card-watched {
-					display: none !important;
-				}
-				body.light--version .new-interface-info__body {
-					width: 69%;
-					padding-top: 1.5em;
-				}
-				body.light--version .new-interface-info {
-					height: 25.3em;
-				}
-				body.advanced--animation:not(.no--animation) .new-interface .card.card--wide.focus .card__view {
-					animation: animation-card-focus 0.2s;
-				}
-				body.advanced--animation:not(.no--animation) .new-interface .card.card--wide.animate-trigger-enter .card__view {
-					animation: animation-trigger-enter 0.2s forwards;
-				}
-				body.advanced--animation:not(.no--animation) .new-interface .card.card--small.focus .card__view {
-					animation: animation-card-focus 0.2s;
-				}
-				body.advanced--animation:not(.no--animation) .new-interface .card.card--small.animate-trigger-enter .card__view {
-					animation: animation-trigger-enter 0.2s forwards;
-				}
-				.logo-moved-head { transition: opacity 0.4s ease; }
-				.logo-moved-separator { transition: opacity 0.4s ease; }
-			</style>`;
-	}
-
-	function getSmallStyles() {
-		return `<style>
-					.new-interface-info__head, .new-interface-info__details, .new-interface-info__description{ opacity: 0; transition: opacity 0.5s ease; }
-					.new-interface-info__head.visible, .new-interface-info__details.visible, .new-interface-info__description.visible{ opacity: 1; }
+					.items-line__title .full-person__photo {
+						width: 1.2em !important;
+						height: 1.2em !important;
+					}
+					.items-line__title .full-person--svg .full-person__photo {
+						padding: 0.4em !important;
+						margin-right: 0.35em !important;
+					}
+					.items-line__title .full-person__photo {
+						margin-right: 0.35em !important;
+					}
+					.items-line {
+						padding-bottom: 4em !important;
+					}
+					.new-interface-info__head, .new-interface-info__details{ opacity: 0; transition: opacity 0.5s ease; min-height: 2.2em !important;}
+					.new-interface-info__head.visible, .new-interface-info__details.visible{ opacity: 1; }
 					.new-interface .card.card--wide {
 						width: 18.3em;
 					}
 					.new-interface .card.card--small {
 						width: 18.3em;
+					}
+					.new-interface-info {
+						position: relative;
+						padding: 1.5em;
+						height: 26em;
+					}
+					.new-interface-info__body {
+						width: 80%;
+						padding-top: 1.1em;
+					}
+					.new-interface-info__head {
+						color: rgba(255, 255, 255, 0.6);
+						font-size: 1.3em;
+						min-height: 1em;
+					}
+					.new-interface-info__head span {
+						color: #fff;
+					}
+					.new-interface-info__title {
+						font-size: 4em;
+						font-weight: 600;
+						margin-bottom: 0.3em;
+						overflow: hidden;
+						-o-text-overflow: '.';
+						text-overflow: '.';
+						display: -webkit-box;
+						-webkit-line-clamp: 1;
+						line-clamp: 1;
+						-webkit-box-orient: vertical;
+						margin-left: -0.03em;
+						line-height: 1.3;
+					}
+					.new-interface-info__details {
+						margin-bottom: 1.6em;
+						display: flex;
+						align-items: center;
+						flex-wrap: wrap;
+						min-height: 1.9em;
+						font-size: 1.3em;
+					}
+					.new-interface-info__split {
+						margin: 0 1em;
+						font-size: 0.7em;
+					}
+					.new-interface-info__description {
+						font-size: 1.4em;
+						font-weight: 310;
+						line-height: 1.3;
+						overflow: hidden;
+						-o-text-overflow: '.';
+						text-overflow: '.';
+						display: -webkit-box;
+						-webkit-line-clamp: 3;
+						line-clamp: 3;
+						-webkit-box-orient: vertical;
+						width: 65%;
+					}
+					.new-interface .card-more__box {
+						padding-bottom: 95%;
+					}
+					.new-interface .full-start__background {
+						height: 108%;
+						top: -5em;
+					}
+					.new-interface .full-start__rate {
+						font-size: 1.3em;
+						margin-right: 0;
+					}
+					.new-interface .card__promo {
+						display: none;
+					}
+					.new-interface .card.card--wide + .card-more .card-more__box {
+						padding-bottom: 95%;
+					}
+					.new-interface .card.card--wide .card-watched {
+						display: none !important;
+					}
+					body.light--version .new-interface-info__body {
+						width: 69%;
+						padding-top: 1.5em;
+					}
+					body.light--version .new-interface-info {
+						height: 25.3em;
+					}
+					body.advanced--animation:not(.no--animation) .new-interface .card.card--wide.focus .card__view {
+						animation: animation-card-focus 0.2s;
+					}
+					body.advanced--animation:not(.no--animation) .new-interface .card.card--wide.animate-trigger-enter .card__view {
+						animation: animation-trigger-enter 0.2s forwards;
+					}
+					body.advanced--animation:not(.no--animation) .new-interface .card.card--small.focus .card__view {
+						animation: animation-card-focus 0.2s;
+					}
+					body.advanced--animation:not(.no--animation) .new-interface .card.card--small.animate-trigger-enter .card__view {
+						animation: animation-trigger-enter 0.2s forwards;
+					}
+					.logo-moved-head { transition: opacity 0.4s ease; }
+					.logo-moved-separator { transition: opacity 0.4s ease; }
+				</style>`;
+	}
+
+	function getSmallStyles() {
+		return `<style>
+					.new-interface-info__head, .new-interface-info__details{ opacity: 0; transition: opacity 0.5s ease; min-height: 2.2em !important;}
+					.new-interface-info__head.visible, .new-interface-info__details.visible{ opacity: 1; }
+					.new-interface .card.card--wide {
+						width: 18.3em;
+					}
+					.items-line__title .full-person__photo {
+						width: 1.2em !important;
+						height: 1.2em !important;
+					}
+					.items-line__title .full-person--svg .full-person__photo {
+						padding: 0.4em !important;
+						margin-right: 0.35em !important;
+					}
+					.items-line__title .full-person__photo {
+						margin-right: 0.35em !important;
+					}
+					.items-line__head {
+						margin-bottom: 1em !important;
 					}
 					.card .card__age,
 					.card .card__title {
@@ -549,7 +574,7 @@
 					}
 					.logo-moved-head { transition: opacity 0.4s ease; }
 					.logo-moved-separator { transition: opacity 0.4s ease; }
-					</style>`;
+				</style>`;
 	}
 
 	function InfoPanel() {
@@ -588,6 +613,8 @@
 		var title = this.html.find(".new-interface-info__title");
 		var desc = this.html.find(".new-interface-info__description");
 
+
+
 		if (Lampa.Storage.get("desc") !== false) {
 			desc.text(data.overview || Lampa.Lang.translate("full_notext"));
 		}
@@ -597,6 +624,7 @@
 		Lampa.Background.change(Lampa.Api.img(data.backdrop_path, "w200"));
 
 		this.load(data);
+
 
 		if (Lampa.Storage.get("logo_show", true)) {
 			var check_type = data.name ? "tv" : "movie";
@@ -805,23 +833,17 @@
 							if (renderId && renderId !== _this.lastRenderId) return;
 							dom_title.style.height = target_container_height + "px";
 
-							setTimeout(
-								function () {
-									if (renderId && renderId !== _this.lastRenderId) return;
-									img.style.transition = "opacity " + FADE_IN_IMG / 1000 + "s ease";
-									img.style.opacity = "1";
-								},
-								Math.max(0, MORPH_HEIGHT - 100),
-							);
+							setTimeout(function () {
+								if (renderId && renderId !== _this.lastRenderId) return;
+								img.style.transition = "opacity " + FADE_IN_IMG / 1000 + "s ease";
+								img.style.opacity = "1";
+							}, Math.max(0, MORPH_HEIGHT - 100));
 
-							setTimeout(
-								function () {
-									if (renderId && renderId !== _this.lastRenderId) return;
-									applyFinalStyles(img, start_text_height);
-									dom_title.style.height = "";
-								},
-								MORPH_HEIGHT + FADE_IN_IMG + 50,
-							);
+							setTimeout(function () {
+								if (renderId && renderId !== _this.lastRenderId) return;
+								applyFinalStyles(img, start_text_height);
+								dom_title.style.height = "";
+							}, MORPH_HEIGHT + FADE_IN_IMG + 50);
 						});
 					}, FADE_OUT_TEXT);
 				}, 200);
@@ -872,7 +894,7 @@
 					} else {
 						Lampa.Storage.set(cache_key, "none");
 					}
-				}).fail(function () {});
+				}).fail(function () { });
 			}
 		}
 	};
@@ -952,7 +974,7 @@
 						.map(function (genre) {
 							return Lampa.Utils.capitalizeFirstLetter(genre.name);
 						})
-						.join(" | "),
+						.join(" | ")
 				);
 			}
 		}
