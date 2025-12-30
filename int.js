@@ -171,7 +171,7 @@
 
 					self.backgroundLast = backdropUrl;
 					img.src = backdropUrl;
-				}, 100);
+				}, 300);
 			},
 
 			reset: function () {
@@ -660,50 +660,11 @@
 				globalInfoCache[apiUrl] = response;
 			});
 		}
-
-		var cache_key = "logo_cache_v2_" + mediaType + "_" + data.id + "_" + language;
-		if (Lampa.Storage.get("logo_show", true)) {
-			var cached_url = Lampa.Storage.get(cache_key);
-			if (cached_url && cached_url !== "none") {
-				var pr_img = new Image();
-				pr_img.src = cached_url;
-			} else if (!cached_url) {
-				var url = Lampa.TMDB.api(mediaType + "/" + data.id + "/images?api_key=" + Lampa.TMDB.key() + "&include_image_language=" + language + ",en,null");
-				$.get(url, function (data_api) {
-					var final_logo = null;
-					if (data_api.logos && data_api.logos.length > 0) {
-						for (var i = 0; i < data_api.logos.length; i++) {
-							if (data_api.logos[i].iso_639_1 == language) {
-								final_logo = data_api.logos[i].file_path;
-								break;
-							}
-						}
-						if (!final_logo) {
-							for (var j = 0; j < data_api.logos.length; j++) {
-								if (data_api.logos[j].iso_639_1 == "en") {
-									final_logo = data_api.logos[j].file_path;
-									break;
-								}
-							}
-						}
-						if (!final_logo) final_logo = data_api.logos[0].file_path;
-					}
-					if (final_logo) {
-						var img_url = Lampa.TMDB.image("/t/p/original" + final_logo.replace(".svg", ".png"));
-						Lampa.Storage.set(cache_key, img_url);
-						var pr_img = new Image();
-						pr_img.src = img_url;
-					} else {
-						Lampa.Storage.set(cache_key, "none");
-					}
-				});
-			}
-		}
 	}
 
 	var preloadTimer = null;
 	function preloadAllVisibleCards() {
-		if (!Lampa.Storage.get("async_load", false)) return;
+		if (!Lampa.Storage.get("async_load", true)) return;
 
 		clearTimeout(preloadTimer);
 		preloadTimer = setTimeout(function () {
@@ -725,7 +686,7 @@
 
 	function setupPreloadObserver() {
 		var observer = new MutationObserver(function (mutations) {
-			if (!Lampa.Storage.get("async_load", false)) return;
+			if (!Lampa.Storage.get("async_load", true)) return;
 
 			var hasNewCards = false;
 			for (var i = 0; i < mutations.length; i++) {
@@ -1024,7 +985,7 @@
 				var img_cache = new Image();
 				img_cache.src = cached_url;
 
-				if (img_cache.complete || Lampa.Storage.get("async_load", false)) {
+				if (img_cache.complete || Lampa.Storage.get("async_load", true)) {
 					startLogoAnimation(cached_url, true);
 				} else {
 					startLogoAnimation(cached_url, false);
@@ -1121,7 +1082,7 @@
 			if (rating > 0) {
 				var rate_style = "";
 
-				if (Lampa.Storage.get("colored_ratings")) {
+				if (Lampa.Storage.get("colored_ratings", true)) {
 					var vote_num = parseFloat(rating);
 					var color = "";
 
@@ -1163,11 +1124,11 @@
 			}
 		}
 
-		if (Lampa.Storage.get("seas") !== false && data.number_of_seasons) {
+		if (Lampa.Storage.get("seas", false) && data.number_of_seasons) {
 			detailsInfo.push('<span class="full-start__pg" style="font-size: 0.9em;">Сезонов ' + data.number_of_seasons + "</span>");
 		}
 
-		if (Lampa.Storage.get("eps") !== false && data.number_of_episodes) {
+		if (Lampa.Storage.get("eps", false) && data.number_of_episodes) {
 			detailsInfo.push('<span class="full-start__pg" style="font-size: 0.9em;">Эпизодов ' + data.number_of_episodes + "</span>");
 		}
 
@@ -1248,7 +1209,7 @@
 	};
 
 	function updateVoteColors() {
-		if (!Lampa.Storage.get("colored_ratings")) return;
+		if (!Lampa.Storage.get("colored_ratings", true)) return;
 
 		function applyColorByRating(element) {
 			var $el = $(element);
@@ -1445,7 +1406,7 @@
 
 		Lampa.SettingsApi.addParam({
 			component: "style_interface",
-			param: { name: "async_load", type: "trigger", default: false },
+			param: { name: "async_load", type: "trigger", default: true },
 			field: { name: "Включить асинхронную загрузку данных" },
 			onChange: function (value) {
 				if (value) preloadAllVisibleCards();
@@ -1498,7 +1459,7 @@
 		var initInterval = setInterval(function () {
 			if (typeof Lampa !== "undefined") {
 				clearInterval(initInterval);
-				if (!Lampa.Storage.get("int_plug", "false")) {
+				if (!Lampa.Storage.get("int_plug", false)) {
 					setDefaultSettings();
 				}
 			}
