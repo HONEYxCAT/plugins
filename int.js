@@ -558,6 +558,7 @@
 						line-height: 1.3;
 					}
 					.new-interface-info__details {
+						margin-top: 1em;
 						margin-bottom: 1.6em;
 						display: flex;
 						align-items: center;
