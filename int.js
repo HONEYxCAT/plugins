@@ -22,8 +22,14 @@
 	if (!mainMaker || !mainMaker.Items || !mainMaker.Create) return;
 
 	wrapMethod(mainMaker.Items, "onInit", function (originalMethod, args) {
-		if (originalMethod) originalMethod.apply(this, args);
 		this.__newInterfaceEnabled = shouldEnableInterface(this && this.object);
+
+		if (this.__newInterfaceEnabled) {
+			if (this.object) this.object.wide = false;
+			this.wide = false;
+		}
+
+		if (originalMethod) originalMethod.apply(this, args);
 	});
 
 	wrapMethod(mainMaker.Create, "onCreate", function (originalMethod, args) {
@@ -37,6 +43,14 @@
 	wrapMethod(mainMaker.Create, "onCreateAndAppend", function (originalMethod, args) {
 		var data = args && args[0];
 		if (this.__newInterfaceEnabled && data) {
+			data.wide = false;
+
+			if (!data.params) data.params = {};
+			if (!data.params.items) data.params.items = {};
+			data.params.items.view = 20;
+			data.params.items_per_row = 20;
+			data.items_per_row = 20;
+
 			extendResultsWithStyle(data);
 		}
 		return originalMethod ? originalMethod.apply(this, args) : undefined;
@@ -48,6 +62,7 @@
 
 		var element = args && args[0];
 		var data = args && args[1];
+
 		if (element && data) {
 			handleLineAppend(this, element, data);
 		}
@@ -137,13 +152,14 @@
 			},
 
 			updateBackground: function (data) {
-				var BACKGROUND_DEBOUNCE_DELAY = 330;
+				var BACKGROUND_DEBOUNCE_DELAY = 300;
 				var self = this;
 
 				clearTimeout(this.backgroundTimer);
 
 				var show_bg = Lampa.Storage.get("show_background", true);
-				var backdropUrl = data && data.backdrop_path && show_bg ? Lampa.Api.img(data.backdrop_path, "original") : "";
+				var bg_resolution = Lampa.Storage.get("background_resolution", "original");
+				var backdropUrl = data && data.backdrop_path && show_bg ? Lampa.Api.img(data.backdrop_path, bg_resolution) : "";
 
 				if (backdropUrl === this.backgroundLast) return;
 
@@ -208,6 +224,12 @@
 		if (!data) return;
 
 		if (Array.isArray(data.results)) {
+			data.results.forEach(function (card) {
+				if (card.wide !== false) {
+					card.wide = false;
+				}
+			});
+
 			Lampa.Utils.extendItemsParams(data.results, {
 				style: {
 					name: Lampa.Storage.get("wide_post") !== false ? "wide" : "small",
@@ -295,6 +317,13 @@
 		line.__newInterfaceLine = true;
 
 		var state = getOrCreateState(items);
+
+		line.items_per_row = 20;
+		line.view = 20;
+		if (line.params) {
+			line.params.items_per_row = 20;
+			if (line.params.items) line.params.items.view = 20;
+		}
 
 		var processCard = function (card) {
 			handleCard(state, card);
@@ -497,7 +526,7 @@
 					}
 					.logo-moved-head { transition: opacity 0.4s ease; }
 					.logo-moved-separator { transition: opacity 0.4s ease; }
-					.new-interface .card .card__age, .new-interface .card .card__title { display: none !important; }
+					${Lampa.Storage.get("hide_captions", true) ? "" : ".new-interface "}.card .card__age, ${Lampa.Storage.get("hide_captions", true) ? "" : ".new-interface "}.card .card__title { display: none !important; }
 				</style>`;
 	}
 
@@ -518,10 +547,6 @@
 					}
 					.items-line__title .full-person__photo {
 						margin-right: 0.5em !important;
-					}
-					.card .card__age,
-					.card .card__title {
-						display: none !important;
 					}
 					.new-interface-info {
 						position: relative;
@@ -644,7 +669,7 @@
 					}
 					.logo-moved-head { transition: opacity 0.4s ease; }
 					.logo-moved-separator { transition: opacity 0.4s ease; }
-					.new-interface .card .card__age, .new-interface .card .card__title { display: none !important; }
+					${Lampa.Storage.get("hide_captions", true) ? "" : ".new-interface "}.card .card__age, ${Lampa.Storage.get("hide_captions", true) ? "" : ".new-interface "}.card .card__title { display: none !important; }
 				</style>`;
 	}
 
@@ -1418,6 +1443,21 @@
 
 		Lampa.SettingsApi.addParam({
 			component: "style_interface",
+			param: { name: "background_resolution", type: "select", default: "original", values: { w300: "w300", w780: "w780", w1280: "w1280", original: "original" } },
+			field: { name: "Разрешение фона", description: "Качество загружаемых фоновых изображений" },
+		});
+
+		Lampa.SettingsApi.addParam({
+			component: "style_interface",
+			param: { name: "hide_captions", type: "trigger", default: true },
+			field: { name: "Скрывать подписи в истории просмотра", description: "Лампа будет перезагружена" },
+			onChange: function () {
+				window.location.reload();
+			},
+		});
+
+		Lampa.SettingsApi.addParam({
+			component: "style_interface",
 			param: { name: "wide_post", type: "trigger", default: true },
 			field: { name: "Широкие постеры", description: "Лампа будет перезагружена" },
 			onChange: function () {
@@ -1473,6 +1513,7 @@
 			Lampa.Storage.set("wide_post", "true");
 			Lampa.Storage.set("logo_show", "true");
 			Lampa.Storage.set("show_background", "true");
+			Lampa.Storage.set("background_resolution", "original");
 			Lampa.Storage.set("status", "true");
 			Lampa.Storage.set("seas", "false");
 			Lampa.Storage.set("eps", "false");
@@ -1482,6 +1523,7 @@
 			Lampa.Storage.set("rat", "true");
 			Lampa.Storage.set("colored_ratings", "true");
 			Lampa.Storage.set("async_load", "true");
+			Lampa.Storage.set("hide_captions", "true");
 		}
 	}
 })();
