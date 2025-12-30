@@ -379,6 +379,8 @@
 						height: 27.5em;
 					}
 					.new-interface-info__body {
+						position: absolute;
+						z-index: 9999999;
 						width: 80%;
 						padding-top: 1.1em;
 					}
@@ -468,6 +470,8 @@
 						display: none !important;
 					}
 					body.light--version .new-interface-info__body {
+						position: absolute;
+						z-index: 9999999;
 						width: 69%;
 						padding-top: 1.5em;
 					}
@@ -520,6 +524,8 @@
 						height: 19.8em;
 					}
 					.new-interface-info__body {
+						position: absolute;
+						z-index: 9999999;
 						width: 80%;
 						padding-top: 0.2em;
 					}
@@ -610,6 +616,8 @@
 						display: none !important;
 					}
 					body.light--version .new-interface-info__body {
+						position: absolute;
+						z-index: 9999999;
 						width: 69%;
 						padding-top: 1.5em;
 					}
@@ -670,15 +678,11 @@
 		var title = this.html.find(".new-interface-info__title");
 		var desc = this.html.find(".new-interface-info__description");
 
-
-
-		if (Lampa.Storage.get("desc") !== false) {
-			desc.text(data.overview || Lampa.Lang.translate("full_notext"));
-		}
+		desc.text(data.overview || Lampa.Lang.translate("full_notext"));
 
 		clearTimeout(this.fadeTimer);
 
-		Lampa.Background.change(Lampa.Api.img(data.backdrop_path, "w200"));
+		Lampa.Background.change(Lampa.Api.img(data.backdrop_path, "original"));
 
 		this.load(data);
 
@@ -1240,11 +1244,7 @@
 		});
 
 
-		Lampa.SettingsApi.addParam({
-			component: "style_interface",
-			param: { name: "desc", type: "trigger", default: true },
-			field: { name: "Показывать описание" },
-		});
+
 
 		Lampa.SettingsApi.addParam({
 			component: "style_interface",
@@ -1376,7 +1376,7 @@
 		function setDefaultSettings() {
 			Lampa.Storage.set("int_plug", "true");
 			Lampa.Storage.set("wide_post", "true");
-			Lampa.Storage.set("desc", "true");
+
 			Lampa.Storage.set("logo_show", "true");
 			Lampa.Storage.set("show_background", "true");
 			Lampa.Storage.set("status", "true");
