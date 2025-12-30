@@ -137,13 +137,15 @@
 			},
 
 			updateBackground: function (data) {
+				var BACKGROUND_DEBOUNCE_DELAY = 330;
+				var self = this;
+
+				clearTimeout(this.backgroundTimer);
+
 				var show_bg = Lampa.Storage.get("show_background", true);
 				var backdropUrl = data && data.backdrop_path && show_bg ? Lampa.Api.img(data.backdrop_path, "original") : "";
 
 				if (backdropUrl === this.backgroundLast) return;
-
-				clearTimeout(this.backgroundTimer);
-				var self = this;
 
 				this.backgroundTimer = setTimeout(function () {
 					if (!backdropUrl) {
@@ -171,7 +173,7 @@
 
 					self.backgroundLast = backdropUrl;
 					img.src = backdropUrl;
-				}, 300);
+				}, BACKGROUND_DEBOUNCE_DELAY);
 			},
 
 			reset: function () {
