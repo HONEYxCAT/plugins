@@ -157,6 +157,12 @@
 
 				clearTimeout(this.backgroundTimer);
 
+				if (this._pendingImg) {
+					this._pendingImg.onload = null;
+					this._pendingImg.onerror = null;
+					this._pendingImg = null;
+				}
+
 				var show_bg = Lampa.Storage.get("show_background", true);
 				var bg_resolution = Lampa.Storage.get("background_resolution", "original");
 				var backdropUrl = data && data.backdrop_path && show_bg ? Lampa.Api.img(data.backdrop_path, bg_resolution) : "";
@@ -175,9 +181,13 @@
 					var prevLayer = bg1.classList.contains("active") ? bg1 : bg2;
 
 					var img = new Image();
+					self._pendingImg = img;
+
 					img.onload = function () {
+						if (self._pendingImg !== img) return;
 						if (backdropUrl !== self.backgroundLast) return;
 
+						self._pendingImg = null;
 						nextLayer.src = backdropUrl;
 						nextLayer.classList.add("active");
 
@@ -441,6 +451,7 @@
 						line-height: 1.3;
 					}
 					.new-interface-info__details {
+						margin-top: 1.2em;
 						margin-bottom: 1.6em;
 						display: flex;
 						align-items: center;
@@ -485,7 +496,7 @@
 						left: 0;
 						opacity: 0;
 						object-fit: cover;
-						transition: opacity 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+						transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 					}
 					.new-interface .full-start__background.active {
 						opacity: 1;
@@ -583,7 +594,7 @@
 						line-height: 1.3;
 					}
 					.new-interface-info__details {
-						margin-top: 1em;
+						margin-top: 1.2em;
 						margin-bottom: 1.6em;
 						display: flex;
 						align-items: center;
@@ -628,7 +639,7 @@
 						left: 0;
 						opacity: 0;
 						object-fit: cover;
-						transition: opacity 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+						transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 					}
 					.new-interface .full-start__background.active {
 						opacity: 1;
