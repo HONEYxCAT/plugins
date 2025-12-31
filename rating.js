@@ -592,14 +592,71 @@
 		setTimeout(preloadAllVisibleCards, 1000);
 	}
 
+	function applyRatingColors(element, rating) {
+		if (!element || !element.length) return;
+
+		var isColoredRatingsEnabled = false;
+
+		try {
+			if (typeof Lampa !== "undefined" && Lampa.Storage) {
+				isColoredRatingsEnabled = Lampa.Storage.get("colored_ratings", true);
+			}
+
+			if (!isColoredRatingsEnabled && typeof window !== "undefined") {
+				var bodyClasses = document.body ? document.body.className : "";
+				if (bodyClasses.indexOf("colored-ratings") !== -1) {
+					isColoredRatingsEnabled = true;
+				}
+			}
+		} catch (e) {}
+
+		if (!isColoredRatingsEnabled || isNaN(rating) || rating <= 0) return;
+
+		var color = "";
+
+		if (rating >= 0 && rating <= 3) {
+			color = "red";
+		} else if (rating > 3 && rating < 6) {
+			color = "orange";
+		} else if (rating >= 6 && rating < 7) {
+			color = "cornflowerblue";
+		} else if (rating >= 7 && rating < 8) {
+			color = "darkmagenta";
+		} else if (rating >= 8 && rating <= 10) {
+			color = "lawngreen";
+		}
+
+		if (color) {
+			element.css("color", color);
+		}
+	}
+
 	function _showRating(data, render) {
 		if (!render) render = Lampa.Activity.active().activity.render();
 		if (data) {
-			var kp_rating = !isNaN(data.kp) && data.kp !== null ? parseFloat(data.kp).toFixed(1) : "0.0";
-			var imdb_rating = !isNaN(data.imdb) && data.imdb !== null ? parseFloat(data.imdb).toFixed(1) : "0.0";
 			$(".wait_rating", render).remove();
-			$(".rate--imdb", render).removeClass("hide").find("> div").eq(0).text(imdb_rating);
-			$(".rate--kp", render).removeClass("hide").find("> div").eq(0).text(kp_rating);
+
+			var kp_rating_num = parseFloat(data.kp);
+			var imdb_rating_num = parseFloat(data.imdb);
+
+			var $kpElement = $(".rate--kp", render);
+			var $imdbElement = $(".rate--imdb", render);
+
+			if (!isNaN(kp_rating_num) && kp_rating_num > 0) {
+				var kp_rating = kp_rating_num.toFixed(1);
+				$kpElement.removeClass("hide").find("> div").eq(0).text(kp_rating);
+				applyRatingColors($kpElement.find("> div").eq(0), kp_rating_num);
+			} else {
+				$kpElement.addClass("hide");
+			}
+
+			if (!isNaN(imdb_rating_num) && imdb_rating_num > 0) {
+				var imdb_rating = imdb_rating_num.toFixed(1);
+				$imdbElement.removeClass("hide").find("> div").eq(0).text(imdb_rating);
+				applyRatingColors($imdbElement.find("> div").eq(0), imdb_rating_num);
+			} else {
+				$imdbElement.addClass("hide");
+			}
 		}
 	}
 
