@@ -11,6 +11,8 @@
 
 	var globalInfoCache = {};
 
+	Lampa.Storage.set("interface_size", "small");
+
 	addStyles();
 	initializeSettings();
 
@@ -1541,6 +1543,7 @@
 			Lampa.Storage.set("colored_ratings", "true");
 			Lampa.Storage.set("async_load", "true");
 			Lampa.Storage.set("hide_captions", "true");
+			Lampa.Storage.set("interface_size", "small");
 		}
 	}
 })();
