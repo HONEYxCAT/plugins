@@ -537,7 +537,7 @@
 					}
 					.logo-moved-head { transition: opacity 0.4s ease; }
 					.logo-moved-separator { transition: opacity 0.4s ease; }
-					${Lampa.Storage.get("hide_captions", true) ? "" : ".new-interface "}.card .card__age, ${Lampa.Storage.get("hide_captions", true) ? "" : ".new-interface "}.card .card__title { display: none !important; }
+					${Lampa.Storage.get("hide_captions", true) ? ".card:not(.card--collection) .card__age, .card:not(.card--collection) .card__title { display: none !important; }" : ""}
 				</style>`;
 	}
 
@@ -680,7 +680,7 @@
 					}
 					.logo-moved-head { transition: opacity 0.4s ease; }
 					.logo-moved-separator { transition: opacity 0.4s ease; }
-					${Lampa.Storage.get("hide_captions", true) ? "" : ".new-interface "}.card .card__age, ${Lampa.Storage.get("hide_captions", true) ? "" : ".new-interface "}.card .card__title { display: none !important; }
+					${Lampa.Storage.get("hide_captions", true) ? ".card:not(.card--collection) .card__age, .card:not(.card--collection) .card__title { display: none !important; }" : ""}
 				</style>`;
 	}
 
@@ -1362,9 +1362,11 @@
 				description: "Настройки элементов",
 			},
 			onRender: function (item) {
-				setTimeout(function () {
-					$('.settings-param > div:contains("Стильный интерфейс")').parent().insertAfter($('div[data-name="interface_size"]'));
-				}, 20);
+				item.css("opacity", "0");
+				requestAnimationFrame(function () {
+					item.insertAfter($('div[data-name="interface_size"]'));
+					item.css("opacity", "");
+				});
 
 				item.on("hover:enter", function () {
 					Lampa.Settings.create("style_interface");
@@ -1465,7 +1467,7 @@
 		Lampa.SettingsApi.addParam({
 			component: "style_interface",
 			param: { name: "hide_captions", type: "trigger", default: true },
-			field: { name: "Скрывать подписи в истории просмотра", description: "Лампа будет перезагружена" },
+			field: { name: "Скрывать названия и год", description: "Лампа будет перезагружена" },
 			onChange: function () {
 				window.location.reload();
 			},
