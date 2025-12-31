@@ -217,6 +217,9 @@
 			"body.lampa-pip-mode .activity--active {",
 			"  opacity: 1 !important;",
 			"}",
+			".player-panel__pip.hide {",
+			"  display: flex !important;",
+			"}",
 		].join("\n");
 
 		var style = document.createElement("style");
