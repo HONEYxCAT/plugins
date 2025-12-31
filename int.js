@@ -1092,6 +1092,10 @@
 	InfoPanel.prototype.draw = function (data) {
 		if (!data || !this.html) return;
 
+		if (data.overview) {
+			this.html.find(".new-interface-info__description").text(data.overview);
+		}
+
 		var year = ((data.release_date || data.first_air_date || "0000") + "").slice(0, 4);
 
 		var rating = parseFloat((data.vote_average || 0) + "").toFixed(1);
