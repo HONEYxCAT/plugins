@@ -3,7 +3,7 @@
 
 	function injectStyles() {
 		var style = document.createElement("style");
-		style.textContent = ".simple-keyboard-mic{pointer-events:none!important}.simple-keyboard-mic.focus{background:transparent!important;color:#fff;box-shadow:none!important;outline:none!important}";
+		style.textContent = ".simple-keyboard-mic{pointer-events:none!important}.simple-keyboard-mic.focus{background:transparent!important;color:#fff!important;box-shadow:none!important;outline:none!important}";
 		document.head.appendChild(style);
 	}
 
