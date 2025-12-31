@@ -19,15 +19,8 @@
 
 		pipContainer = document.createElement("div");
 		pipContainer.id = "lampa-pip-container";
-		pipContainer.innerHTML = '<div class="lampa-pip-close">✕</div><div class="lampa-pip-video-wrap"></div>';
+		pipContainer.innerHTML = '<div class="lampa-pip-video-wrap"></div>';
 		document.body.appendChild(pipContainer);
-
-		pipContainer.querySelector(".lampa-pip-close").addEventListener("click", function (e) {
-			e.stopPropagation();
-			e.preventDefault();
-			if (Date.now() - pipActivatedTime < 500) return;
-			exitPiP();
-		});
 
 		pipContainer.addEventListener("click", function (e) {
 			if (Date.now() - pipActivatedTime < 500) return;
@@ -35,6 +28,40 @@
 				exitPiP();
 			}
 		});
+	}
+	
+	function createHeaderButton() {
+		var existing = document.querySelector(".head__action.pip--icon");
+		if (existing) return;
+		
+		var actions = document.querySelector(".head__actions");
+		if (!actions) return;
+		
+		var btn = document.createElement("div");
+		btn.className = "head__action selector pip--icon";
+		btn.style.display = "none";
+		btn.innerHTML = '<svg viewBox="0 0 25 23" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M23 15V19C23 20.1046 22.1046 21 21 21H4C2.89543 21 2 20.1046 2 19V4C2 2.89543 2.89543 2 4 2H12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><rect x="14" y="2" width="9" height="7" rx="1" stroke="currentColor" stroke-width="2"/></svg>';
+		
+		actions.insertBefore(btn, actions.firstChild);
+		
+		btn.addEventListener("click", function(e) {
+			e.stopPropagation();
+			exitPiP();
+		});
+		
+		$(btn).on("hover:enter", function() {
+			exitPiP();
+		});
+	}
+	
+	function showHeaderButton() {
+		var btn = document.querySelector(".head__action.pip--icon");
+		if (btn) btn.style.display = "";
+	}
+	
+	function hideHeaderButton() {
+		var btn = document.querySelector(".head__action.pip--icon");
+		if (btn) btn.style.display = "none";
 	}
 
 	function togglePiP() {
@@ -87,6 +114,9 @@
 		document.body.classList.remove("player--viewing");
 
 		Lampa.PlayerPanel.hide();
+		
+		createHeaderButton();
+		showHeaderButton();
 
 		setTimeout(function () {
 			Lampa.Controller.toggle("content");
@@ -116,6 +146,7 @@
 		}
 
 		document.body.classList.remove("lampa-pip-mode");
+		hideHeaderButton();
 
 		var playData = savedPlayData;
 		
@@ -152,6 +183,7 @@
 		}
 
 		document.body.classList.remove("lampa-pip-mode");
+		hideHeaderButton();
 
 		savedPlayData = null;
 		savedVideoTime = 0;
@@ -189,21 +221,9 @@
 			"  object-fit: cover !important;",
 			"  transform: none !important;",
 			"}",
-			".lampa-pip-close {",
-			"  position: absolute;",
-			"  top: 8px;",
-			"  right: 8px;",
-			"  width: 30px;",
-			"  height: 30px;",
-			"  background: rgba(0,0,0,0.7);",
-			"  border-radius: 50%;",
-			"  display: flex;",
-			"  align-items: center;",
-			"  justify-content: center;",
-			"  cursor: pointer;",
-			"  z-index: 10000;",
-			"  font-size: 18px;",
-			"  color: white;",
+			".head__action.pip--icon svg {",
+			"  width: 1.3em;",
+			"  height: 1.3em;",
 			"}",
 			"body.lampa-pip-mode .player {",
 			"  position: fixed !important;",
