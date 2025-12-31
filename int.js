@@ -47,9 +47,9 @@
 
 			if (!data.params) data.params = {};
 			if (!data.params.items) data.params.items = {};
-			data.params.items.view = 20;
-			data.params.items_per_row = 20;
-			data.items_per_row = 20;
+			data.params.items.view = 12;
+			data.params.items_per_row = 12;
+			data.items_per_row = 12;
 
 			extendResultsWithStyle(data);
 		}
@@ -318,11 +318,11 @@
 
 		var state = getOrCreateState(items);
 
-		line.items_per_row = 20;
-		line.view = 20;
+		line.items_per_row = 12;
+		line.view = 12;
 		if (line.params) {
-			line.params.items_per_row = 20;
-			if (line.params.items) line.params.items.view = 20;
+			line.params.items_per_row = 12;
+			if (line.params.items) line.params.items.view = 12;
 		}
 
 		var processCard = function (card) {
