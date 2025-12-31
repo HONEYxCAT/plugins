@@ -7,9 +7,12 @@
 	var pipContainer = null;
 	var originalVideoParent = null;
 	var originalVideo = null;
-	var lastActivity = null;
 	var originalPlayerVideoDestroy = null;
 	var originalPlayerClose = null;
+	var isEnteringPiP = false;
+	var pipActivatedTime = 0;
+	var savedPlayData = null;
+	var savedVideoTime = 0;
 
 	function createPipContainer() {
 		if (pipContainer) return;
@@ -19,16 +22,19 @@
 		pipContainer.innerHTML = '<div class="lampa-pip-close">✕</div><div class="lampa-pip-video-wrap"></div>';
 		document.body.appendChild(pipContainer);
 
-		pipContainer.querySelector(".lampa-pip-close").onclick = function (e) {
+		pipContainer.querySelector(".lampa-pip-close").addEventListener("click", function (e) {
 			e.stopPropagation();
+			e.preventDefault();
+			if (Date.now() - pipActivatedTime < 500) return;
 			exitPiP();
-		};
+		});
 
-		pipContainer.onclick = function (e) {
+		pipContainer.addEventListener("click", function (e) {
+			if (Date.now() - pipActivatedTime < 500) return;
 			if (e.target === pipContainer || e.target.classList.contains("lampa-pip-video-wrap")) {
 				exitPiP();
 			}
-		};
+		});
 	}
 
 	function togglePiP() {
@@ -43,6 +49,11 @@
 	function enterPiP() {
 		console.log("[PiP Plugin] enterPiP вызван");
 
+		if (isEnteringPiP) {
+			console.log("[PiP Plugin] Уже входим в PiP, пропускаем");
+			return;
+		}
+
 		originalVideo = document.querySelector(".player-video__display video");
 		if (!originalVideo) {
 			originalVideo = document.querySelector(".player video");
@@ -54,8 +65,12 @@
 			return;
 		}
 
+		isEnteringPiP = true;
 		originalVideoParent = originalVideo.parentElement;
-		lastActivity = Lampa.Activity.active();
+		
+		savedPlayData = Lampa.Player.playdata();
+		savedVideoTime = originalVideo.currentTime;
+		console.log("[PiP Plugin] Сохранены данные воспроизведения, время:", savedVideoTime);
 
 		createPipContainer();
 
@@ -65,20 +80,17 @@
 		originalVideo.style.cssText = "width:100%!important;height:100%!important;object-fit:cover!important;position:static!important;transform:none!important;";
 
 		pipActive = true;
+		pipActivatedTime = Date.now();
 		pipContainer.classList.add("active");
 
 		document.body.classList.add("lampa-pip-mode");
 		document.body.classList.remove("player--viewing");
 
-		var playerEl = document.querySelector(".player");
-		if (playerEl) {
-			playerEl.style.display = "none";
-		}
-
 		Lampa.PlayerPanel.hide();
 
 		setTimeout(function () {
 			Lampa.Controller.toggle("content");
+			isEnteringPiP = false;
 		}, 50);
 
 		console.log("[PiP Plugin] PiP активирован");
@@ -89,28 +101,40 @@
 
 		if (!pipActive) return;
 
-		pipActive = false;
-
-		if (pipContainer) {
-			pipContainer.classList.remove("active");
+		var videoTime = 0;
+		if (originalVideo) {
+			videoTime = originalVideo.currentTime;
 		}
 
-		var playerEl = document.querySelector(".player");
-
-		if (originalVideo && originalVideoParent) {
-			originalVideo.style.cssText = "";
-			originalVideoParent.appendChild(originalVideo);
+		pipActive = false;
+		isEnteringPiP = false;
+		
+		if (pipContainer) {
+			pipContainer.classList.remove("active");
+			var videoWrap = pipContainer.querySelector(".lampa-pip-video-wrap");
+			if (videoWrap) videoWrap.innerHTML = "";
 		}
 
 		document.body.classList.remove("lampa-pip-mode");
-		document.body.classList.add("player--viewing");
 
-		if (playerEl) {
-			playerEl.style.display = "";
+		var playData = savedPlayData;
+		
+		originalVideo = null;
+		originalVideoParent = null;
+		savedPlayData = null;
+		savedVideoTime = 0;
+
+		if (playData) {
+			console.log("[PiP Plugin] Перезапускаем воспроизведение с позиции:", videoTime);
+			
+			var newPlayData = Object.assign({}, playData);
+			newPlayData.timeline = newPlayData.timeline || {};
+			newPlayData.timeline.time = videoTime;
+			
+			setTimeout(function() {
+				Lampa.Player.play(newPlayData);
+			}, 100);
 		}
-
-		Lampa.Controller.toggle("player_panel");
-		Lampa.PlayerPanel.show();
 
 		console.log("[PiP Plugin] PiP деактивирован");
 	}
@@ -119,6 +143,7 @@
 		console.log("[PiP Plugin] Полное закрытие PiP");
 
 		pipActive = false;
+		isEnteringPiP = false;
 
 		if (pipContainer) {
 			pipContainer.classList.remove("active");
@@ -128,11 +153,8 @@
 
 		document.body.classList.remove("lampa-pip-mode");
 
-		var playerEl = document.querySelector(".player");
-		if (playerEl) {
-			playerEl.style.display = "";
-		}
-
+		savedPlayData = null;
+		savedVideoTime = 0;
 		originalVideo = null;
 		originalVideoParent = null;
 	}
@@ -210,6 +232,14 @@
 		}
 	}
 
+	function showPipButton() {
+		var pipBtn = document.querySelector(".player-panel__pip");
+		if (pipBtn) {
+			pipBtn.classList.remove("hide");
+			console.log("[PiP Plugin] Кнопка PiP показана");
+		}
+	}
+
 	function interceptPlayerMethods() {
 		if (!originalPlayerVideoDestroy && Lampa.PlayerVideo && Lampa.PlayerVideo.destroy) {
 			originalPlayerVideoDestroy = Lampa.PlayerVideo.destroy;
@@ -226,15 +256,9 @@
 		if (!originalPlayerClose && Lampa.Player && Lampa.Player.close) {
 			originalPlayerClose = Lampa.Player.close;
 			Lampa.Player.close = function () {
-				console.log("[PiP Plugin] Player.close вызван, pipActive:", pipActive);
-				if (pipActive) {
-					console.log("[PiP Plugin] PiP активен, скрываем плеер вместо закрытия");
-					document.body.classList.remove("player--viewing");
-					var playerEl = document.querySelector(".player");
-					if (playerEl) {
-						playerEl.style.display = "none";
-					}
-					Lampa.Controller.toggle("content");
+				console.log("[PiP Plugin] Player.close вызван, pipActive:", pipActive, "isEnteringPiP:", isEnteringPiP);
+				if (pipActive || isEnteringPiP) {
+					console.log("[PiP Plugin] PiP активен, игнорируем close");
 					return;
 				}
 				return originalPlayerClose.call(this);
@@ -256,6 +280,7 @@
 				setTimeout(function () {
 					overridePipHandler();
 					interceptPlayerMethods();
+					showPipButton();
 				}, 100);
 			}
 
