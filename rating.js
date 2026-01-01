@@ -8,7 +8,10 @@
 	function preloadRating(card) {
 		if (!card || !card.id) return;
 
-		var cache = Lampa.Storage.cache("kp_rating", 500, {});
+		var cache = Lampa.Storage.get("kp_rating", "{}");
+		if (typeof cache === "string") {
+			try { cache = JSON.parse(cache); } catch(e) { cache = {}; }
+		}
 		if (cache[card.id]) return;
 
 		var inQueue = preloadQueue.some(function(c) { return c.id === card.id; });
@@ -59,9 +62,13 @@
 				network.silent(
 					apiUrl + "api/v2.1/films/search-by-keyword?keyword=" + encodeURIComponent(title),
 					function (json2) {
-						processItems(json2.items || json2.films || [], card, searchYear, orig, apiUrl, ratingUrl, headers, network, callback);
+						var items2 = json2.items || json2.films || [];
+						processItems(items2, card, searchYear, orig, apiUrl, ratingUrl, headers, network, callback);
 					},
-					function () { saveCache(card.id, 0, 0); if (callback) callback(); },
+					function () { 
+						saveCache(card.id, 0, 0); 
+						if (callback) callback(); 
+					},
 					false,
 					{ headers: headers }
 				);
@@ -75,13 +82,14 @@
 	}
 
 	function processItems(items, card, searchYear, orig, apiUrl, ratingUrl, headers, network, callback) {
+		var cardTitle = card.title || card.name;
+		
 		if (!items || !items.length) {
 			saveCache(card.id, 0, 0);
 			if (callback) callback();
 			return;
 		}
 
-		var cardTitle = card.title || card.name;
 		items.forEach(function (c) {
 			var year = c.start_date || c.year || "0000";
 			c.tmp_year = parseInt((year + "").slice(0, 4));
@@ -91,7 +99,9 @@
 
 		if (card.imdb_id) {
 			var byImdb = items.filter(function (e) { return (e.imdb_id || e.imdbId) == card.imdb_id; });
-			if (byImdb.length === 1) found = byImdb[0];
+			if (byImdb.length === 1) {
+				found = byImdb[0];
+			}
 		}
 
 		if (!found && orig) {
@@ -100,10 +110,13 @@
 					   equalTitle(e.nameEn || e.en_title, orig) ||
 					   equalTitle(e.nameRu || e.ru_title || e.title, orig);
 			});
-			if (byOrig.length === 1) found = byOrig[0];
-			else if (byOrig.length > 1) {
+			if (byOrig.length === 1) {
+				found = byOrig[0];
+			} else if (byOrig.length > 1) {
 				var byYear = byOrig.filter(function (c) { return c.tmp_year === searchYear; });
-				if (byYear.length === 1) found = byYear[0];
+				if (byYear.length === 1) {
+					found = byYear[0];
+				}
 			}
 		}
 
@@ -113,10 +126,13 @@
 					   equalTitle(e.nameEn || e.en_title, cardTitle) ||
 					   equalTitle(e.nameOriginal || e.orig_title, cardTitle);
 			});
-			if (byTitle.length === 1) found = byTitle[0];
-			else if (byTitle.length > 1) {
+			if (byTitle.length === 1) {
+				found = byTitle[0];
+			} else if (byTitle.length > 1) {
 				var byYear = byTitle.filter(function (c) { return c.tmp_year === searchYear; });
-				if (byYear.length === 1) found = byYear[0];
+				if (byYear.length === 1) {
+					found = byYear[0];
+				}
 			}
 		}
 
@@ -124,7 +140,9 @@
 			var byYear = items.filter(function (c) {
 				return c.tmp_year && c.tmp_year >= searchYear - 1 && c.tmp_year <= searchYear + 1;
 			});
-			if (byYear.length === 1) found = byYear[0];
+			if (byYear.length === 1) {
+				found = byYear[0];
+			}
 		}
 
 		if (!found) {
@@ -163,7 +181,9 @@
 		network.clear();
 		network.timeout(8000);
 		network.silent(apiUrl + "api/v2.2/films/" + kpId, function (data) {
-			saveCache(cardId, data.ratingKinopoisk || 0, data.ratingImdb || 0);
+			var kp = data.ratingKinopoisk || 0;
+			var imdb = data.ratingImdb || 0;
+			saveCache(cardId, kp, imdb);
 			if (callback) callback();
 		}, function () {
 			saveCache(cardId, 0, 0);
@@ -172,13 +192,30 @@
 	}
 
 	function saveCache(id, kp, imdb) {
-		var cache = Lampa.Storage.cache("kp_rating", 500, {});
+		var cache = Lampa.Storage.get("kp_rating", "{}");
+		if (typeof cache === "string") {
+			try { cache = JSON.parse(cache); } catch(e) { cache = {}; }
+		}
+		
+		var keys = Object.keys(cache);
+		
+		if (keys.length >= 500) {
+			var oldest = keys.sort(function(a, b) {
+				return (cache[a].timestamp || 0) - (cache[b].timestamp || 0);
+			}).slice(0, 100);
+			oldest.forEach(function(k) { delete cache[k]; });
+		}
+		
 		cache[id] = { kp: kp, imdb: imdb, timestamp: Date.now() };
 		Lampa.Storage.set("kp_rating", cache);
 	}
 
 	function getCache(id) {
-		var cache = Lampa.Storage.cache("kp_rating", 500, {});
+		var cache = Lampa.Storage.get("kp_rating", "{}");
+		if (typeof cache === "string") {
+			try { cache = JSON.parse(cache); } catch(e) { cache = {}; }
+		}
+		
 		if (cache[id]) {
 			var age = Date.now() - cache[id].timestamp;
 			if (age < 86400000) return cache[id];
