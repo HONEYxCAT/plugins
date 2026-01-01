@@ -292,7 +292,7 @@
 				Lampa.Storage.set("kp_rating", cache);
 				return false;
 			}
-			return cache;
+			return cache[movie];
 		}
 		return false;
 	}
@@ -579,8 +579,8 @@
 				var render = e.object.activity.render();
 				if ($(".rate--kp", render).hasClass("hide") && !$(".wait_rating", render).length) {
 					var movieCache = _getCache(e.data.movie.id);
-					if (movieCache && movieCache[e.data.movie.id]) {
-						_showRating(movieCache[e.data.movie.id], render);
+					if (movieCache) {
+						_showRating(movieCache, render);
 					} else {
 						$(".info__rate", render).after('<div style="width:2em;margin-top:1em;margin-right:1em" class="wait_rating"><div class="broadcast__scan"><div></div></div><div>');
 						rating_kp_imdb(e.data.movie);
