@@ -5,16 +5,27 @@
 	var isPreloading = false;
 	var preloadTimer = null;
 	var preloadedIds = {};
+	var pendingCards = {};
 
 	function preloadRating(card, silent) {
 		if (!card || !card.id) return;
-		if (preloadedIds[card.id]) return;
+		if (preloadedIds[card.id]) {
+			console.log("[Rating Preload] Skip (already in preloadedIds):", card.id, card.title || card.name);
+			if (!silent) Lampa.Noty.show("Preload Skip: " + (card.title || card.name));
+			return;
+		}
 
 		var movieCache = _getCache(card.id);
-		if (movieCache) return;
+		if (movieCache) {
+			console.log("[Rating Preload] Skip (cache exists):", card.id, card.title || card.name, movieCache);
+			if (!silent) Lampa.Noty.show("Cache Hit: " + (card.title || card.name));
+			return;
+		}
 
 		preloadedIds[card.id] = true;
 		preloadQueue.push(card);
+		console.log("[Rating Preload] Added to queue:", card.id, card.title || card.name, "Queue size:", preloadQueue.length);
+		if (!silent) Lampa.Noty.show("Added to queue: " + (card.title || card.name));
 
 		if (!isPreloading) {
 			processPreloadQueue();
@@ -288,12 +299,15 @@
 		if (cache[movie]) {
 			var cache_time = 60 * 60 * 24 * 1000;
 			if (timestamp - cache[movie].timestamp > cache_time) {
+				console.log("[Rating Cache] Expired:", movie);
 				delete cache[movie];
 				Lampa.Storage.set("kp_rating", cache);
 				return false;
 			}
+			console.log("[Rating Cache] Hit:", movie, cache[movie]);
 			return cache[movie];
 		}
+		console.log("[Rating Cache] Miss:", movie);
 		return false;
 	}
 
@@ -304,13 +318,28 @@
 		if (!cache[movie]) {
 			cache[movie] = data;
 			Lampa.Storage.set("kp_rating", cache);
+			console.log("[Rating Cache] Set new:", movie, data);
+			setTimeout(function() { Lampa.Noty.show("Cache Set: " + movie + " KP:" + data.kp + " IMDB:" + data.imdb); }, 100);
 		} else {
 			if (timestamp - cache[movie].timestamp > cache_time) {
 				data.timestamp = timestamp;
 				cache[movie] = data;
 				Lampa.Storage.set("kp_rating", cache);
-			} else data = cache[movie];
+				console.log("[Rating Cache] Updated (expired):", movie, data);
+				setTimeout(function() { Lampa.Noty.show("Cache Updated: " + movie); }, 100);
+			} else {
+				data = cache[movie];
+				console.log("[Rating Cache] Already exists, returning cached:", movie, data);
+			}
 		}
+		
+		if (pendingCards[movie]) {
+			console.log("[Rating Cache] Found pending card, showing rating:", movie);
+			setTimeout(function() { Lampa.Noty.show("Showing pending: " + movie); }, 200);
+			_showRating(data, pendingCards[movie]);
+			delete pendingCards[movie];
+		}
+		
 		return data;
 	}
 
@@ -577,14 +606,36 @@
 		Lampa.Listener.follow("full", function (e) {
 			if (e.type == "complite") {
 				var render = e.object.activity.render();
-				if ($(".rate--kp", render).hasClass("hide") && !$(".wait_rating", render).length) {
-					var movieCache = _getCache(e.data.movie.id);
+				var movieId = e.data.movie.id;
+				var movieTitle = e.data.movie.title || e.data.movie.name;
+				var $kpEl = $(".rate--kp", render);
+				var kpHidden = $kpEl.hasClass("hide");
+				var kpText = $kpEl.find("> div").eq(0).text();
+				var hasWaitRating = $(".wait_rating", render).length > 0;
+				console.log("[Rating Full] Card opened:", movieId, movieTitle);
+				console.log("[Rating Full] KP hidden:", kpHidden, "KP text:", kpText, "Wait rating:", hasWaitRating);
+				
+				setTimeout(function() { Lampa.Noty.show("Card opened: " + movieTitle); }, 50);
+				
+				if (kpHidden && !hasWaitRating) {
+					var movieCache = _getCache(movieId);
 					if (movieCache) {
+						console.log("[Rating Full] Using cached rating:", movieId, movieCache);
+						setTimeout(function() { Lampa.Noty.show("Using cache: " + movieTitle); }, 150);
 						_showRating(movieCache, render);
+					} else if (preloadedIds[movieId]) {
+						console.log("[Rating Full] Preload in progress, waiting:", movieId);
+						setTimeout(function() { Lampa.Noty.show("Waiting preload: " + movieTitle); }, 150);
+						pendingCards[movieId] = render;
 					} else {
+						console.log("[Rating Full] No cache, loading from API:", movieId);
+						setTimeout(function() { Lampa.Noty.show("Loading API: " + movieTitle); }, 150);
 						$(".info__rate", render).after('<div style="width:2em;margin-top:1em;margin-right:1em" class="wait_rating"><div class="broadcast__scan"><div></div></div><div>');
 						rating_kp_imdb(e.data.movie);
 					}
+				} else {
+					console.log("[Rating Full] Skipped - rating already visible or loading");
+					setTimeout(function() { Lampa.Noty.show("Skipped: " + movieTitle); }, 150);
 				}
 			}
 		});
