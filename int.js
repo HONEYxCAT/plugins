@@ -1253,41 +1253,35 @@
 		}
 	};
 
+	function getColorByRating(vote) {
+		if (isNaN(vote)) return "";
+		if (vote >= 0 && vote <= 3) return "red";
+		if (vote > 3 && vote < 6) return "orange";
+		if (vote >= 6 && vote < 7) return "cornflowerblue";
+		if (vote >= 7 && vote < 8) return "darkmagenta";
+		if (vote >= 8 && vote <= 10) return "lawngreen";
+		return "";
+	}
+
+	function applyColorByRating(element) {
+		var $el = $(element);
+		var voteText = $el.text().trim();
+
+		if (/^\d+(\.\d+)?K$/.test(voteText)) return;
+
+		var match = voteText.match(/(\d+(\.\d+)?)/);
+		if (!match) return;
+
+		var vote = parseFloat(match[0]);
+		var color = getColorByRating(vote);
+
+		if (color) {
+			$el.css("color", color);
+		}
+	}
+
 	function updateVoteColors() {
 		if (!Lampa.Storage.get("colored_ratings", true)) return;
-
-		function applyColorByRating(element) {
-			var $el = $(element);
-			var voteText = $el.text().trim();
-
-			if (/^\d+(\.\d+)?K$/.test(voteText)) {
-				return;
-			}
-
-			var match = voteText.match(/(\d+(\.\d+)?)/);
-			if (!match) return;
-
-			var vote = parseFloat(match[0]);
-			if (isNaN(vote)) return;
-
-			var color = "";
-
-			if (vote >= 0 && vote <= 3) {
-				color = "red";
-			} else if (vote > 3 && vote < 6) {
-				color = "orange";
-			} else if (vote >= 6 && vote < 7) {
-				color = "cornflowerblue";
-			} else if (vote >= 7 && vote < 8) {
-				color = "darkmagenta";
-			} else if (vote >= 8 && vote <= 10) {
-				color = "lawngreen";
-			}
-
-			if (color) {
-				$el.css("color", color);
-			}
-		}
 
 		$(".card__vote").each(function () {
 			applyColorByRating(this);
@@ -1300,13 +1294,40 @@
 		$(".info__rate, .card__imdb-rate, .card__kinopoisk-rate").each(function () {
 			applyColorByRating(this);
 		});
+
+		$(".rate--kp, .rate--imdb, .rate--cub").each(function () {
+			applyColorByRating($(this).find("> div").eq(0));
+		});
 	}
 
 	function setupVoteColorsObserver() {
-		setTimeout(updateVoteColors, 300);
+		updateVoteColors();
 
-		var observer = new MutationObserver(function () {
-			setTimeout(updateVoteColors, 100);
+		var pendingUpdate = null;
+		var observer = new MutationObserver(function (mutations) {
+			if (!Lampa.Storage.get("colored_ratings", true)) return;
+
+			for (var i = 0; i < mutations.length; i++) {
+				var added = mutations[i].addedNodes;
+				for (var j = 0; j < added.length; j++) {
+					var node = added[j];
+					if (node.nodeType === 1) {
+						var $node = $(node);
+						$node.find(".card__vote, .full-start__rate, .full-start-new__rate, .info__rate, .card__imdb-rate, .card__kinopoisk-rate").each(function () {
+							applyColorByRating(this);
+						});
+						$node.find(".rate--kp, .rate--imdb, .rate--cub").each(function () {
+							applyColorByRating($(this).find("> div").eq(0));
+						});
+						if ($node.hasClass("card__vote") || $node.hasClass("full-start__rate") || $node.hasClass("info__rate")) {
+							applyColorByRating(node);
+						}
+						if ($node.hasClass("rate--kp") || $node.hasClass("rate--imdb") || $node.hasClass("rate--cub")) {
+							applyColorByRating($node.find("> div").eq(0));
+						}
+					}
+				}
+			}
 		});
 
 		observer.observe(document.body, {
