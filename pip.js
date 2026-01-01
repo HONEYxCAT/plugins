@@ -14,6 +14,115 @@
 	var savedPlayData = null;
 	var savedVideoTime = 0;
 	var playerContainer = null;
+	var savedPanelState = null;
+	var savedTracks = null;
+	var savedSubs = null;
+	var savedQualitys = null;
+	var savedFlows = null;
+	var originalSetTracks = null;
+	var originalSetSubs = null;
+	var originalSetLevels = null;
+	var originalQuality = null;
+	var originalSetFlows = null;
+
+	function savePanelState() {
+		var subsBtn = document.querySelector(".player-panel__subs");
+		var tracksBtn = document.querySelector(".player-panel__tracks");
+		var qualityBtn = document.querySelector(".player-panel__quality");
+		var episodeBtn = document.querySelector(".player-panel__episode");
+		var playlistBtn = document.querySelector(".player-panel__playlist");
+		var flowBtn = document.querySelector(".player-panel__flow");
+
+		savedPanelState = {
+			subsVisible: subsBtn && !subsBtn.classList.contains("hide"),
+			tracksVisible: tracksBtn && !tracksBtn.classList.contains("hide"),
+			qualityVisible: qualityBtn && !qualityBtn.classList.contains("hide"),
+			qualityText: qualityBtn ? qualityBtn.textContent : "auto",
+			episodeVisible: episodeBtn && !episodeBtn.classList.contains("hide"),
+			episodeText: episodeBtn ? episodeBtn.textContent : "",
+			playlistVisible: playlistBtn && !playlistBtn.classList.contains("hide"),
+			flowVisible: flowBtn && !flowBtn.classList.contains("hide"),
+		};
+	}
+
+	function restorePanelState() {
+		if (!savedPanelState) return;
+
+		var subsBtn = document.querySelector(".player-panel__subs");
+		var tracksBtn = document.querySelector(".player-panel__tracks");
+		var qualityBtn = document.querySelector(".player-panel__quality");
+		var episodeBtn = document.querySelector(".player-panel__episode");
+		var playlistBtn = document.querySelector(".player-panel__playlist");
+		var flowBtn = document.querySelector(".player-panel__flow");
+
+		if (subsBtn) subsBtn.classList.toggle("hide", !savedPanelState.subsVisible);
+		if (tracksBtn) tracksBtn.classList.toggle("hide", !savedPanelState.tracksVisible);
+		if (qualityBtn) {
+			qualityBtn.classList.toggle("hide", !savedPanelState.qualityVisible);
+			if (savedPanelState.qualityText) qualityBtn.textContent = savedPanelState.qualityText;
+		}
+		if (episodeBtn) {
+			episodeBtn.classList.toggle("hide", !savedPanelState.episodeVisible);
+			if (savedPanelState.episodeText) episodeBtn.textContent = savedPanelState.episodeText;
+		}
+		if (playlistBtn) playlistBtn.classList.toggle("hide", !savedPanelState.playlistVisible);
+		if (flowBtn) flowBtn.classList.toggle("hide", !savedPanelState.flowVisible);
+
+		if (savedTracks && savedTracks.length) {
+			Lampa.PlayerPanel.setTracks(savedTracks);
+		}
+		if (savedSubs && savedSubs.length) {
+			Lampa.PlayerPanel.setSubs(savedSubs);
+		}
+		if (savedQualitys) {
+			Lampa.PlayerPanel.setLevels(savedQualitys, savedPanelState.qualityText);
+		}
+		if (savedFlows && Lampa.PlayerPanel.setFlows) {
+			Lampa.PlayerPanel.setFlows(savedFlows);
+		}
+	}
+
+	function interceptPanelMethods() {
+		if (!originalSetTracks && Lampa.PlayerPanel && Lampa.PlayerPanel.setTracks) {
+			originalSetTracks = Lampa.PlayerPanel.setTracks;
+			Lampa.PlayerPanel.setTracks = function (tr) {
+				savedTracks = tr;
+				return originalSetTracks.apply(this, arguments);
+			};
+		}
+
+		if (!originalSetSubs && Lampa.PlayerPanel && Lampa.PlayerPanel.setSubs) {
+			originalSetSubs = Lampa.PlayerPanel.setSubs;
+			Lampa.PlayerPanel.setSubs = function (su) {
+				savedSubs = su;
+				return originalSetSubs.apply(this, arguments);
+			};
+		}
+
+		if (!originalSetLevels && Lampa.PlayerPanel && Lampa.PlayerPanel.setLevels) {
+			originalSetLevels = Lampa.PlayerPanel.setLevels;
+			Lampa.PlayerPanel.setLevels = function (levels, current) {
+				savedQualitys = levels;
+				return originalSetLevels.apply(this, arguments);
+			};
+		}
+
+		if (!originalQuality && Lampa.PlayerPanel && Lampa.PlayerPanel.quality) {
+			originalQuality = Lampa.PlayerPanel.quality;
+			Lampa.PlayerPanel.quality = function (qs, url) {
+				if (qs) savedQualitys = qs;
+				return originalQuality.apply(this, arguments);
+			};
+		}
+
+		if (!originalSetFlows && Lampa.PlayerPanel && Lampa.PlayerPanel.setFlows) {
+			originalSetFlows = Lampa.PlayerPanel.setFlows;
+			Lampa.PlayerPanel.setFlows = function (data) {
+				savedFlows = data;
+				return originalSetFlows.apply(this, arguments);
+			};
+		}
+	}
 
 	function createPipContainer() {
 		if (pipContainer) return;
@@ -109,6 +218,8 @@
 		savedPlayData = Lampa.Player.playdata();
 		savedVideoTime = originalVideo.currentTime;
 
+		savePanelState();
+
 		createPipContainer();
 
 		var videoWrap = pipContainer.querySelector(".lampa-pip-video-wrap");
@@ -168,6 +279,8 @@
 		Lampa.Controller.toggle("player");
 		Lampa.PlayerPanel.show(true);
 
+		restorePanelState();
+
 		originalVideo = null;
 		originalVideoParent = null;
 		playerContainer = null;
@@ -198,6 +311,7 @@
 
 		savedPlayData = null;
 		savedVideoTime = 0;
+		savedPanelState = null;
 		originalVideo = null;
 		originalVideoParent = null;
 		playerContainer = null;
@@ -307,12 +421,14 @@
 		addStyles();
 		overridePipHandler();
 		interceptPlayerMethods();
+		interceptPanelMethods();
 
 		Lampa.Listener.follow("player", function (e) {
 			if (e.type === "start") {
 				setTimeout(function () {
 					overridePipHandler();
 					interceptPlayerMethods();
+					interceptPanelMethods();
 					showPipButton();
 				}, 100);
 			}
