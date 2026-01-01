@@ -15,112 +15,135 @@
 	var savedVideoTime = 0;
 	var playerContainer = null;
 	var savedPanelState = null;
-	var savedTracks = null;
-	var savedSubs = null;
-	var savedQualitys = null;
-	var savedFlows = null;
-	var originalSetTracks = null;
-	var originalSetSubs = null;
-	var originalSetLevels = null;
-	var originalQuality = null;
-	var originalSetFlows = null;
+	var capturedEvents = {};
 
 	function savePanelState() {
-		var subsBtn = document.querySelector(".player-panel__subs");
-		var tracksBtn = document.querySelector(".player-panel__tracks");
-		var qualityBtn = document.querySelector(".player-panel__quality");
-		var episodeBtn = document.querySelector(".player-panel__episode");
-		var playlistBtn = document.querySelector(".player-panel__playlist");
-		var flowBtn = document.querySelector(".player-panel__flow");
+		savedPanelState = { buttons: {} };
 
-		savedPanelState = {
-			subsVisible: subsBtn && !subsBtn.classList.contains("hide"),
-			tracksVisible: tracksBtn && !tracksBtn.classList.contains("hide"),
-			qualityVisible: qualityBtn && !qualityBtn.classList.contains("hide"),
-			qualityText: qualityBtn ? qualityBtn.textContent : "auto",
-			episodeVisible: episodeBtn && !episodeBtn.classList.contains("hide"),
-			episodeText: episodeBtn ? episodeBtn.textContent : "",
-			playlistVisible: playlistBtn && !playlistBtn.classList.contains("hide"),
-			flowVisible: flowBtn && !flowBtn.classList.contains("hide"),
-		};
+		var panel = document.querySelector(".player-panel");
+		if (panel) {
+			var buttons = panel.querySelectorAll("[class*='player-panel__']");
+			buttons.forEach(function(btn) {
+				var classes = Array.from(btn.classList);
+				var key = classes.find(function(c) { return c.startsWith("player-panel__"); });
+				if (key) {
+					savedPanelState.buttons[key] = {
+						hidden: btn.classList.contains("hide"),
+						text: btn.textContent
+					};
+				}
+			});
+		}
 	}
 
 	function restorePanelState() {
 		if (!savedPanelState) return;
 
-		var subsBtn = document.querySelector(".player-panel__subs");
-		var tracksBtn = document.querySelector(".player-panel__tracks");
-		var qualityBtn = document.querySelector(".player-panel__quality");
-		var episodeBtn = document.querySelector(".player-panel__episode");
-		var playlistBtn = document.querySelector(".player-panel__playlist");
-		var flowBtn = document.querySelector(".player-panel__flow");
+		var panel = document.querySelector(".player-panel");
+		if (panel) {
+			var buttons = panel.querySelectorAll("[class*='player-panel__']");
+			buttons.forEach(function(btn) {
+				var classes = Array.from(btn.classList);
+				var key = classes.find(function(c) { return c.startsWith("player-panel__"); });
+				if (key && savedPanelState.buttons && savedPanelState.buttons[key]) {
+					var state = savedPanelState.buttons[key];
+					btn.classList.toggle("hide", state.hidden);
+					if (state.text && btn.childNodes.length === 1 && btn.childNodes[0].nodeType === 3) {
+						btn.textContent = state.text;
+					}
+				}
+			});
+		}
 
-		if (subsBtn) subsBtn.classList.toggle("hide", !savedPanelState.subsVisible);
-		if (tracksBtn) tracksBtn.classList.toggle("hide", !savedPanelState.tracksVisible);
-		if (qualityBtn) {
-			qualityBtn.classList.toggle("hide", !savedPanelState.qualityVisible);
-			if (savedPanelState.qualityText) qualityBtn.textContent = savedPanelState.qualityText;
+		if (capturedEvents.tracks) {
+			Lampa.PlayerPanel.setTracks(capturedEvents.tracks);
 		}
-		if (episodeBtn) {
-			episodeBtn.classList.toggle("hide", !savedPanelState.episodeVisible);
-			if (savedPanelState.episodeText) episodeBtn.textContent = savedPanelState.episodeText;
+		if (capturedEvents.subs) {
+			Lampa.PlayerPanel.setSubs(capturedEvents.subs);
 		}
-		if (playlistBtn) playlistBtn.classList.toggle("hide", !savedPanelState.playlistVisible);
-		if (flowBtn) flowBtn.classList.toggle("hide", !savedPanelState.flowVisible);
+		if (capturedEvents.levels) {
+			Lampa.PlayerPanel.setLevels(capturedEvents.levels.levels, capturedEvents.levels.current);
+		}
+		if (capturedEvents.quality) {
+			Lampa.PlayerPanel.quality(capturedEvents.quality.qs, capturedEvents.quality.url);
+		}
+		if (capturedEvents.flows && Lampa.PlayerPanel.setFlows) {
+			Lampa.PlayerPanel.setFlows(capturedEvents.flows);
+		}
+		if (capturedEvents.translate) {
+			Lampa.PlayerPanel.setTranslate(capturedEvents.translate);
+		}
+	}
 
-		if (savedTracks && savedTracks.length) {
-			Lampa.PlayerPanel.setTracks(savedTracks);
-		}
-		if (savedSubs && savedSubs.length) {
-			Lampa.PlayerPanel.setSubs(savedSubs);
-		}
-		if (savedQualitys) {
-			Lampa.PlayerPanel.setLevels(savedQualitys, savedPanelState.qualityText);
-		}
-		if (savedFlows && Lampa.PlayerPanel.setFlows) {
-			Lampa.PlayerPanel.setFlows(savedFlows);
+	function setupEventCapture() {
+		if (Lampa.PlayerVideo && Lampa.PlayerVideo.listener) {
+			Lampa.PlayerVideo.listener.follow("tracks", function(e) {
+				capturedEvents.tracks = e.tracks;
+			});
+			Lampa.PlayerVideo.listener.follow("subs", function(e) {
+				capturedEvents.subs = e.subs;
+			});
+			Lampa.PlayerVideo.listener.follow("levels", function(e) {
+				capturedEvents.levels = { levels: e.levels, current: e.current };
+			});
 		}
 	}
 
 	function interceptPanelMethods() {
-		if (!originalSetTracks && Lampa.PlayerPanel && Lampa.PlayerPanel.setTracks) {
-			originalSetTracks = Lampa.PlayerPanel.setTracks;
-			Lampa.PlayerPanel.setTracks = function (tr) {
-				savedTracks = tr;
-				return originalSetTracks.apply(this, arguments);
-			};
-		}
+		if (Lampa.PlayerPanel) {
+			var origSetTracks = Lampa.PlayerPanel.setTracks;
+			if (origSetTracks && !origSetTracks._intercepted) {
+				Lampa.PlayerPanel.setTracks = function(tr) {
+					capturedEvents.tracks = tr;
+					return origSetTracks.apply(this, arguments);
+				};
+				Lampa.PlayerPanel.setTracks._intercepted = true;
+			}
 
-		if (!originalSetSubs && Lampa.PlayerPanel && Lampa.PlayerPanel.setSubs) {
-			originalSetSubs = Lampa.PlayerPanel.setSubs;
-			Lampa.PlayerPanel.setSubs = function (su) {
-				savedSubs = su;
-				return originalSetSubs.apply(this, arguments);
-			};
-		}
+			var origSetSubs = Lampa.PlayerPanel.setSubs;
+			if (origSetSubs && !origSetSubs._intercepted) {
+				Lampa.PlayerPanel.setSubs = function(su) {
+					capturedEvents.subs = su;
+					return origSetSubs.apply(this, arguments);
+				};
+				Lampa.PlayerPanel.setSubs._intercepted = true;
+			}
 
-		if (!originalSetLevels && Lampa.PlayerPanel && Lampa.PlayerPanel.setLevels) {
-			originalSetLevels = Lampa.PlayerPanel.setLevels;
-			Lampa.PlayerPanel.setLevels = function (levels, current) {
-				savedQualitys = levels;
-				return originalSetLevels.apply(this, arguments);
-			};
-		}
+			var origSetLevels = Lampa.PlayerPanel.setLevels;
+			if (origSetLevels && !origSetLevels._intercepted) {
+				Lampa.PlayerPanel.setLevels = function(levels, current) {
+					capturedEvents.levels = { levels: levels, current: current };
+					return origSetLevels.apply(this, arguments);
+				};
+				Lampa.PlayerPanel.setLevels._intercepted = true;
+			}
 
-		if (!originalQuality && Lampa.PlayerPanel && Lampa.PlayerPanel.quality) {
-			originalQuality = Lampa.PlayerPanel.quality;
-			Lampa.PlayerPanel.quality = function (qs, url) {
-				if (qs) savedQualitys = qs;
-				return originalQuality.apply(this, arguments);
-			};
-		}
+			var origQuality = Lampa.PlayerPanel.quality;
+			if (origQuality && !origQuality._intercepted) {
+				Lampa.PlayerPanel.quality = function(qs, url) {
+					if (qs) capturedEvents.quality = { qs: qs, url: url };
+					return origQuality.apply(this, arguments);
+				};
+				Lampa.PlayerPanel.quality._intercepted = true;
+			}
 
-		if (!originalSetFlows && Lampa.PlayerPanel && Lampa.PlayerPanel.setFlows) {
-			originalSetFlows = Lampa.PlayerPanel.setFlows;
-			Lampa.PlayerPanel.setFlows = function (data) {
-				savedFlows = data;
-				return originalSetFlows.apply(this, arguments);
-			};
+			var origSetFlows = Lampa.PlayerPanel.setFlows;
+			if (origSetFlows && !origSetFlows._intercepted) {
+				Lampa.PlayerPanel.setFlows = function(data) {
+					capturedEvents.flows = data;
+					return origSetFlows.apply(this, arguments);
+				};
+				Lampa.PlayerPanel.setFlows._intercepted = true;
+			}
+
+			var origSetTranslate = Lampa.PlayerPanel.setTranslate;
+			if (origSetTranslate && !origSetTranslate._intercepted) {
+				Lampa.PlayerPanel.setTranslate = function(data) {
+					capturedEvents.translate = data;
+					return origSetTranslate.apply(this, arguments);
+				};
+				Lampa.PlayerPanel.setTranslate._intercepted = true;
+			}
 		}
 	}
 
@@ -312,6 +335,7 @@
 		savedPlayData = null;
 		savedVideoTime = 0;
 		savedPanelState = null;
+		capturedEvents = {};
 		originalVideo = null;
 		originalVideoParent = null;
 		playerContainer = null;
@@ -422,6 +446,7 @@
 		overridePipHandler();
 		interceptPlayerMethods();
 		interceptPanelMethods();
+		setupEventCapture();
 
 		Lampa.Listener.follow("player", function (e) {
 			if (e.type === "start") {
