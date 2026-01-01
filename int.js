@@ -1320,7 +1320,7 @@
 
 		Lampa.Listener.follow("full", function (data) {
 			if (data.type === "complite") {
-				setTimeout(updateVoteColors, 100);
+				updateVoteColors();
 			}
 		});
 
