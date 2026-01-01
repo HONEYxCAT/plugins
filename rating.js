@@ -244,10 +244,21 @@
 	function findCardData(element) {
 		if (!element) return null;
 		var node = element.jquery ? element[0] : element;
-		while (node && !node.card_data) {
+		var originalNode = node;
+		var steps = 0;
+		while (node && !node.card_data && steps < 10) {
 			node = node.parentNode;
+			steps++;
 		}
-		return node && node.card_data ? node.card_data : null;
+		
+		if (node && node.card_data) {
+			return node.card_data;
+		} else {
+			setTimeout(function() { 
+				Lampa.Noty.show("No card_data found for element, steps: " + steps); 
+			}, 300);
+			return null;
+		}
 	}
 
 	function preloadAllVisibleCards() {
@@ -257,12 +268,25 @@
 			if (!layer.length) layer = $("body");
 
 			var cards = layer.find(".card");
+			setTimeout(function() { Lampa.Noty.show("Found " + cards.length + " cards"); }, 50);
+			
+			var foundCards = 0;
+			var addedCards = 0;
+			
 			cards.each(function () {
 				var data = findCardData(this);
 				if (data && data.id) {
+					foundCards++;
+					var title = data.title || data.name || "Unknown";
+					if (!preloadedIds[data.id]) {
+						addedCards++;
+						setTimeout(function() { Lampa.Noty.show("Preload: " + title + " ID:" + data.id); }, 100 + addedCards * 50);
+					}
 					preloadRating(data, true);
 				}
 			});
+			
+			setTimeout(function() { Lampa.Noty.show("Cards with data: " + foundCards + ", Added: " + addedCards); }, 200);
 		}, 500);
 	}
 
