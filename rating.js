@@ -263,7 +263,16 @@
 			var layer = $(".layer--visible");
 			if (!layer.length) layer = $("body");
 
-			layer.find(".card").each(function () {
+			var cards = layer.find(".card, .card--small, .card--collection, .card-parser");
+			
+			if (cards.length === 0) {
+				var cardViews = layer.find(".card__view");
+				if (cardViews.length) {
+					cards = cardViews.parent();
+				}
+			}
+			
+			cards.each(function () {
 				var data = findCardData(this);
 				if (data && data.id) {
 					preloadRating(data);
@@ -345,10 +354,7 @@
 			if (e.type === "complite") {
 				var render = e.object.activity.render();
 				var card = e.data.movie;
-
-				setTimeout(function() {
-					loadAndShowRating(card, render);
-				}, 50);
+				loadAndShowRating(card, render);
 			}
 		});
 
