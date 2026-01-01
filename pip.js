@@ -16,6 +16,7 @@
 	var playerContainer = null;
 	var savedPanelState = null;
 	var capturedEvents = {};
+	var pipTimelineInterval = null;
 
 	function savePanelState() {
 		savedPanelState = { buttons: {} };
@@ -72,6 +73,27 @@
 		}
 		if (capturedEvents.translate) {
 			Lampa.PlayerPanel.setTranslate(capturedEvents.translate);
+		}
+	}
+
+	function startPipTimelineUpdate() {
+		stopPipTimelineUpdate();
+		pipTimelineInterval = setInterval(function() {
+			if (pipActive && originalVideo && !originalVideo.paused) {
+				var playdata = Lampa.Player.playdata();
+				if (playdata && playdata.timeline && originalVideo.duration) {
+					playdata.timeline.time = originalVideo.currentTime;
+					playdata.timeline.duration = originalVideo.duration;
+					playdata.timeline.percent = Math.round((originalVideo.currentTime / originalVideo.duration) * 100);
+				}
+			}
+		}, 1000);
+	}
+
+	function stopPipTimelineUpdate() {
+		if (pipTimelineInterval) {
+			clearInterval(pipTimelineInterval);
+			pipTimelineInterval = null;
 		}
 	}
 
@@ -265,6 +287,8 @@
 		createHeaderButton();
 		showHeaderButton();
 
+		startPipTimelineUpdate();
+
 		setTimeout(function () {
 			Lampa.Controller.toggle("content");
 			isEnteringPiP = false;
@@ -275,6 +299,8 @@
 		if (!pipActive) return;
 
 		isExitingPiP = true;
+
+		stopPipTimelineUpdate();
 
 		if (originalVideo) {
 			originalVideo.removeEventListener("loadedmetadata", updatePipSize);
@@ -313,6 +339,8 @@
 	}
 
 	function closePiPCompletely() {
+		stopPipTimelineUpdate();
+
 		if (originalVideo && originalVideoParent) {
 			if (playerContainer && !playerContainer.isConnected) {
 				document.body.appendChild(playerContainer);
