@@ -17,6 +17,8 @@
 	var savedPanelState = null;
 	var capturedEvents = {};
 	var pipTimelineInterval = null;
+	var savedTimelineHash = null;
+	var savedSegments = null;
 
 	function savePanelState() {
 		savedPanelState = { buttons: {} };
@@ -24,16 +26,22 @@
 		var panel = document.querySelector(".player-panel");
 		if (panel) {
 			var buttons = panel.querySelectorAll("[class*='player-panel__']");
-			buttons.forEach(function(btn) {
+			buttons.forEach(function (btn) {
 				var classes = Array.from(btn.classList);
-				var key = classes.find(function(c) { return c.startsWith("player-panel__"); });
+				var key = classes.find(function (c) {
+					return c.startsWith("player-panel__");
+				});
 				if (key) {
 					savedPanelState.buttons[key] = {
 						hidden: btn.classList.contains("hide"),
-						text: btn.textContent
+						text: btn.textContent,
 					};
 				}
 			});
+		}
+
+		if (savedPlayData && savedPlayData.segments) {
+			savedSegments = JSON.parse(JSON.stringify(savedPlayData.segments));
 		}
 	}
 
@@ -43,9 +51,11 @@
 		var panel = document.querySelector(".player-panel");
 		if (panel) {
 			var buttons = panel.querySelectorAll("[class*='player-panel__']");
-			buttons.forEach(function(btn) {
+			buttons.forEach(function (btn) {
 				var classes = Array.from(btn.classList);
-				var key = classes.find(function(c) { return c.startsWith("player-panel__"); });
+				var key = classes.find(function (c) {
+					return c.startsWith("player-panel__");
+				});
 				if (key && savedPanelState.buttons && savedPanelState.buttons[key]) {
 					var state = savedPanelState.buttons[key];
 					btn.classList.toggle("hide", state.hidden);
@@ -74,20 +84,61 @@
 		if (capturedEvents.translate) {
 			Lampa.PlayerPanel.setTranslate(capturedEvents.translate);
 		}
+
+		if (savedSegments) {
+			if (Lampa.Player && Lampa.Player.listener) {
+				Lampa.Player.listener.send("segments", savedSegments);
+			}
+
+			setTimeout(function () {
+				var segmentsContainer = document.querySelector(".player-panel__timeline-segments");
+
+				if (segmentsContainer && Lampa.PlayerVideo && Lampa.PlayerVideo.video) {
+					var video = Lampa.PlayerVideo.video();
+					var duration = video ? video.duration : 0;
+
+					segmentsContainer.innerHTML = "";
+
+					if (duration && savedSegments) {
+						for (var name in savedSegments) {
+							if (!Array.isArray(savedSegments[name])) continue;
+							for (var a = 0; a < savedSegments[name].length; a++) {
+								var seg = savedSegments[name][a];
+
+								var segElem = document.createElement("div");
+								segElem.className = "player-panel__timeline-segment player-panel__timeline-segment--" + name;
+								var rStart = Math.min(duration, seg.start);
+								var rEnd = Math.min(duration, seg.end);
+								var start = (rStart / duration) * 100;
+								var length = ((rEnd - rStart) / duration) * 100;
+
+								segElem.style.left = start + "%";
+								segElem.style.width = length + "%";
+								segmentsContainer.appendChild(segElem);
+							}
+						}
+					}
+				}
+			}, 200);
+		}
 	}
 
 	function startPipTimelineUpdate() {
 		stopPipTimelineUpdate();
-		pipTimelineInterval = setInterval(function() {
-			if (pipActive && originalVideo && !originalVideo.paused) {
-				var playdata = Lampa.Player.playdata();
-				if (playdata && playdata.timeline && originalVideo.duration) {
-					playdata.timeline.time = originalVideo.currentTime;
-					playdata.timeline.duration = originalVideo.duration;
-					playdata.timeline.percent = Math.round((originalVideo.currentTime / originalVideo.duration) * 100);
-				}
+		pipTimelineInterval = setInterval(function () {
+			if (pipActive && originalVideo && !originalVideo.paused && originalVideo.duration && savedTimelineHash) {
+				var currentTime = originalVideo.currentTime;
+				var duration = originalVideo.duration;
+				var percent = Math.round((currentTime / duration) * 100);
+
+				Lampa.Timeline.update({
+					hash: savedTimelineHash,
+					time: currentTime,
+					duration: duration,
+					percent: percent,
+				});
 			}
-		}, 1000);
+		}, 3000);
 	}
 
 	function stopPipTimelineUpdate() {
@@ -99,13 +150,13 @@
 
 	function setupEventCapture() {
 		if (Lampa.PlayerVideo && Lampa.PlayerVideo.listener) {
-			Lampa.PlayerVideo.listener.follow("tracks", function(e) {
+			Lampa.PlayerVideo.listener.follow("tracks", function (e) {
 				capturedEvents.tracks = e.tracks;
 			});
-			Lampa.PlayerVideo.listener.follow("subs", function(e) {
+			Lampa.PlayerVideo.listener.follow("subs", function (e) {
 				capturedEvents.subs = e.subs;
 			});
-			Lampa.PlayerVideo.listener.follow("levels", function(e) {
+			Lampa.PlayerVideo.listener.follow("levels", function (e) {
 				capturedEvents.levels = { levels: e.levels, current: e.current };
 			});
 		}
@@ -115,7 +166,7 @@
 		if (Lampa.PlayerPanel) {
 			var origSetTracks = Lampa.PlayerPanel.setTracks;
 			if (origSetTracks && !origSetTracks._intercepted) {
-				Lampa.PlayerPanel.setTracks = function(tr) {
+				Lampa.PlayerPanel.setTracks = function (tr) {
 					capturedEvents.tracks = tr;
 					return origSetTracks.apply(this, arguments);
 				};
@@ -124,7 +175,7 @@
 
 			var origSetSubs = Lampa.PlayerPanel.setSubs;
 			if (origSetSubs && !origSetSubs._intercepted) {
-				Lampa.PlayerPanel.setSubs = function(su) {
+				Lampa.PlayerPanel.setSubs = function (su) {
 					capturedEvents.subs = su;
 					return origSetSubs.apply(this, arguments);
 				};
@@ -133,7 +184,7 @@
 
 			var origSetLevels = Lampa.PlayerPanel.setLevels;
 			if (origSetLevels && !origSetLevels._intercepted) {
-				Lampa.PlayerPanel.setLevels = function(levels, current) {
+				Lampa.PlayerPanel.setLevels = function (levels, current) {
 					capturedEvents.levels = { levels: levels, current: current };
 					return origSetLevels.apply(this, arguments);
 				};
@@ -142,7 +193,7 @@
 
 			var origQuality = Lampa.PlayerPanel.quality;
 			if (origQuality && !origQuality._intercepted) {
-				Lampa.PlayerPanel.quality = function(qs, url) {
+				Lampa.PlayerPanel.quality = function (qs, url) {
 					if (qs) capturedEvents.quality = { qs: qs, url: url };
 					return origQuality.apply(this, arguments);
 				};
@@ -151,7 +202,7 @@
 
 			var origSetFlows = Lampa.PlayerPanel.setFlows;
 			if (origSetFlows && !origSetFlows._intercepted) {
-				Lampa.PlayerPanel.setFlows = function(data) {
+				Lampa.PlayerPanel.setFlows = function (data) {
 					capturedEvents.flows = data;
 					return origSetFlows.apply(this, arguments);
 				};
@@ -160,7 +211,7 @@
 
 			var origSetTranslate = Lampa.PlayerPanel.setTranslate;
 			if (origSetTranslate && !origSetTranslate._intercepted) {
-				Lampa.PlayerPanel.setTranslate = function(data) {
+				Lampa.PlayerPanel.setTranslate = function (data) {
 					capturedEvents.translate = data;
 					return origSetTranslate.apply(this, arguments);
 				};
@@ -263,6 +314,10 @@
 		savedPlayData = Lampa.Player.playdata();
 		savedVideoTime = originalVideo.currentTime;
 
+		if (savedPlayData && savedPlayData.timeline) {
+			savedTimelineHash = savedPlayData.timeline.hash;
+		}
+
 		savePanelState();
 
 		createPipContainer();
@@ -301,6 +356,25 @@
 		isExitingPiP = true;
 
 		stopPipTimelineUpdate();
+
+		if (originalVideo && originalVideo.duration && savedTimelineHash) {
+			var currentTime = originalVideo.currentTime;
+			var duration = originalVideo.duration;
+			var percent = Math.round((currentTime / duration) * 100);
+
+			Lampa.Timeline.update({
+				hash: savedTimelineHash,
+				time: currentTime,
+				duration: duration,
+				percent: percent,
+			});
+
+			if (savedPlayData && savedPlayData.timeline) {
+				savedPlayData.timeline.time = currentTime;
+				savedPlayData.timeline.duration = duration;
+				savedPlayData.timeline.percent = percent;
+			}
+		}
 
 		if (originalVideo) {
 			originalVideo.removeEventListener("loadedmetadata", updatePipSize);
@@ -341,6 +415,19 @@
 	function closePiPCompletely() {
 		stopPipTimelineUpdate();
 
+		if (originalVideo && originalVideo.duration && savedTimelineHash) {
+			var currentTime = originalVideo.currentTime;
+			var duration = originalVideo.duration;
+			var percent = Math.round((currentTime / duration) * 100);
+
+			Lampa.Timeline.update({
+				hash: savedTimelineHash,
+				time: currentTime,
+				duration: duration,
+				percent: percent,
+			});
+		}
+
 		if (originalVideo && originalVideoParent) {
 			if (playerContainer && !playerContainer.isConnected) {
 				document.body.appendChild(playerContainer);
@@ -363,6 +450,8 @@
 		savedPlayData = null;
 		savedVideoTime = 0;
 		savedPanelState = null;
+		savedTimelineHash = null;
+		savedSegments = null;
 		capturedEvents = {};
 		originalVideo = null;
 		originalVideoParent = null;
@@ -466,6 +555,20 @@
 				}
 				return originalPlayerPlay.call(this, data);
 			};
+		}
+
+		if (Lampa.Player && Lampa.Player.iptv) {
+			var originalPlayerIptv = Lampa.Player.iptv;
+			if (!originalPlayerIptv._pipIntercepted) {
+				Lampa.Player.iptv = function (data) {
+					if (pipActive && !isExitingPiP) {
+						Lampa.Noty.show("Сначала закройте PiP");
+						return;
+					}
+					return originalPlayerIptv.call(this, data);
+				};
+				Lampa.Player.iptv._pipIntercepted = true;
+			}
 		}
 	}
 

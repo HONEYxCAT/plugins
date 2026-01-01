@@ -10,11 +10,17 @@
 
 		var cache = Lampa.Storage.get("kp_rating", "{}");
 		if (typeof cache === "string") {
-			try { cache = JSON.parse(cache); } catch(e) { cache = {}; }
+			try {
+				cache = JSON.parse(cache);
+			} catch (e) {
+				cache = {};
+			}
 		}
 		if (cache[card.id]) return;
 
-		var inQueue = preloadQueue.some(function(c) { return c.id === card.id; });
+		var inQueue = preloadQueue.some(function (c) {
+			return c.id === card.id;
+		});
 		if (inQueue) return;
 
 		preloadQueue.push(card);
@@ -54,36 +60,42 @@
 		}
 
 		network.timeout(8000);
-		network.silent(url, function (json) {
-			var items = json.items || json.films || [];
-			if (!items.length && card.imdb_id) {
-				network.clear();
-				network.timeout(8000);
-				network.silent(
-					apiUrl + "api/v2.1/films/search-by-keyword?keyword=" + encodeURIComponent(title),
-					function (json2) {
-						var items2 = json2.items || json2.films || [];
-						processItems(items2, card, searchYear, orig, apiUrl, ratingUrl, headers, network, callback);
-					},
-					function () { 
-						saveCache(card.id, 0, 0); 
-						if (callback) callback(); 
-					},
-					false,
-					{ headers: headers }
-				);
-			} else {
-				processItems(items, card, searchYear, orig, apiUrl, ratingUrl, headers, network, callback);
-			}
-		}, function () {
-			saveCache(card.id, 0, 0);
-			if (callback) callback();
-		}, false, { headers: headers });
+		network.silent(
+			url,
+			function (json) {
+				var items = json.items || json.films || [];
+				if (!items.length && card.imdb_id) {
+					network.clear();
+					network.timeout(8000);
+					network.silent(
+						apiUrl + "api/v2.1/films/search-by-keyword?keyword=" + encodeURIComponent(title),
+						function (json2) {
+							var items2 = json2.items || json2.films || [];
+							processItems(items2, card, searchYear, orig, apiUrl, ratingUrl, headers, network, callback);
+						},
+						function () {
+							saveCache(card.id, 0, 0);
+							if (callback) callback();
+						},
+						false,
+						{ headers: headers },
+					);
+				} else {
+					processItems(items, card, searchYear, orig, apiUrl, ratingUrl, headers, network, callback);
+				}
+			},
+			function () {
+				saveCache(card.id, 0, 0);
+				if (callback) callback();
+			},
+			false,
+			{ headers: headers },
+		);
 	}
 
 	function processItems(items, card, searchYear, orig, apiUrl, ratingUrl, headers, network, callback) {
 		var cardTitle = card.title || card.name;
-		
+
 		if (!items || !items.length) {
 			saveCache(card.id, 0, 0);
 			if (callback) callback();
@@ -98,7 +110,9 @@
 		var found = null;
 
 		if (card.imdb_id) {
-			var byImdb = items.filter(function (e) { return (e.imdb_id || e.imdbId) == card.imdb_id; });
+			var byImdb = items.filter(function (e) {
+				return (e.imdb_id || e.imdbId) == card.imdb_id;
+			});
 			if (byImdb.length === 1) {
 				found = byImdb[0];
 			}
@@ -106,14 +120,14 @@
 
 		if (!found && orig) {
 			var byOrig = items.filter(function (e) {
-				return equalTitle(e.nameOriginal || e.orig_title, orig) ||
-					   equalTitle(e.nameEn || e.en_title, orig) ||
-					   equalTitle(e.nameRu || e.ru_title || e.title, orig);
+				return equalTitle(e.nameOriginal || e.orig_title, orig) || equalTitle(e.nameEn || e.en_title, orig) || equalTitle(e.nameRu || e.ru_title || e.title, orig);
 			});
 			if (byOrig.length === 1) {
 				found = byOrig[0];
 			} else if (byOrig.length > 1) {
-				var byYear = byOrig.filter(function (c) { return c.tmp_year === searchYear; });
+				var byYear = byOrig.filter(function (c) {
+					return c.tmp_year === searchYear;
+				});
 				if (byYear.length === 1) {
 					found = byYear[0];
 				}
@@ -122,14 +136,14 @@
 
 		if (!found && cardTitle) {
 			var byTitle = items.filter(function (e) {
-				return equalTitle(e.nameRu || e.ru_title || e.title, cardTitle) ||
-					   equalTitle(e.nameEn || e.en_title, cardTitle) ||
-					   equalTitle(e.nameOriginal || e.orig_title, cardTitle);
+				return equalTitle(e.nameRu || e.ru_title || e.title, cardTitle) || equalTitle(e.nameEn || e.en_title, cardTitle) || equalTitle(e.nameOriginal || e.orig_title, cardTitle);
 			});
 			if (byTitle.length === 1) {
 				found = byTitle[0];
 			} else if (byTitle.length > 1) {
-				var byYear = byTitle.filter(function (c) { return c.tmp_year === searchYear; });
+				var byYear = byTitle.filter(function (c) {
+					return c.tmp_year === searchYear;
+				});
 				if (byYear.length === 1) {
 					found = byYear[0];
 				}
@@ -160,52 +174,72 @@
 
 		network.clear();
 		network.timeout(5000);
-		network["native"](ratingUrl + kpId + ".xml", function (str) {
-			if (str.indexOf("<rating>") >= 0) {
-				try {
-					var xml = $($.parseXML(str));
-					var kp = parseFloat(xml.find("kp_rating").text()) || 0;
-					var imdb = parseFloat(xml.find("imdb_rating").text()) || 0;
-					saveCache(card.id, kp, imdb);
-					if (callback) callback();
-					return;
-				} catch (e) {}
-			}
-			fetchFromApi(kpId, card.id, apiUrl, headers, network, callback);
-		}, function () {
-			fetchFromApi(kpId, card.id, apiUrl, headers, network, callback);
-		}, false, { dataType: "text" });
+		network["native"](
+			ratingUrl + kpId + ".xml",
+			function (str) {
+				if (str.indexOf("<rating>") >= 0) {
+					try {
+						var xml = $($.parseXML(str));
+						var kp = parseFloat(xml.find("kp_rating").text()) || 0;
+						var imdb = parseFloat(xml.find("imdb_rating").text()) || 0;
+						saveCache(card.id, kp, imdb);
+						if (callback) callback();
+						return;
+					} catch (e) {}
+				}
+				fetchFromApi(kpId, card.id, apiUrl, headers, network, callback);
+			},
+			function () {
+				fetchFromApi(kpId, card.id, apiUrl, headers, network, callback);
+			},
+			false,
+			{ dataType: "text" },
+		);
 	}
 
 	function fetchFromApi(kpId, cardId, apiUrl, headers, network, callback) {
 		network.clear();
 		network.timeout(8000);
-		network.silent(apiUrl + "api/v2.2/films/" + kpId, function (data) {
-			var kp = data.ratingKinopoisk || 0;
-			var imdb = data.ratingImdb || 0;
-			saveCache(cardId, kp, imdb);
-			if (callback) callback();
-		}, function () {
-			saveCache(cardId, 0, 0);
-			if (callback) callback();
-		}, false, { headers: headers });
+		network.silent(
+			apiUrl + "api/v2.2/films/" + kpId,
+			function (data) {
+				var kp = data.ratingKinopoisk || 0;
+				var imdb = data.ratingImdb || 0;
+				saveCache(cardId, kp, imdb);
+				if (callback) callback();
+			},
+			function () {
+				saveCache(cardId, 0, 0);
+				if (callback) callback();
+			},
+			false,
+			{ headers: headers },
+		);
 	}
 
 	function saveCache(id, kp, imdb) {
 		var cache = Lampa.Storage.get("kp_rating", "{}");
 		if (typeof cache === "string") {
-			try { cache = JSON.parse(cache); } catch(e) { cache = {}; }
+			try {
+				cache = JSON.parse(cache);
+			} catch (e) {
+				cache = {};
+			}
 		}
-		
+
 		var keys = Object.keys(cache);
-		
+
 		if (keys.length >= 500) {
-			var oldest = keys.sort(function(a, b) {
-				return (cache[a].timestamp || 0) - (cache[b].timestamp || 0);
-			}).slice(0, 100);
-			oldest.forEach(function(k) { delete cache[k]; });
+			var oldest = keys
+				.sort(function (a, b) {
+					return (cache[a].timestamp || 0) - (cache[b].timestamp || 0);
+				})
+				.slice(0, 100);
+			oldest.forEach(function (k) {
+				delete cache[k];
+			});
 		}
-		
+
 		cache[id] = { kp: kp, imdb: imdb, timestamp: Date.now() };
 		Lampa.Storage.set("kp_rating", cache);
 	}
@@ -213,9 +247,13 @@
 	function getCache(id) {
 		var cache = Lampa.Storage.get("kp_rating", "{}");
 		if (typeof cache === "string") {
-			try { cache = JSON.parse(cache); } catch(e) { cache = {}; }
+			try {
+				cache = JSON.parse(cache);
+			} catch (e) {
+				cache = {};
+			}
 		}
-		
+
 		if (cache[id]) {
 			var age = Date.now() - cache[id].timestamp;
 			if (age < 86400000) return cache[id];
@@ -239,7 +277,12 @@
 	}
 
 	function normalizeTitle(str) {
-		return cleanTitle(str.toLowerCase().replace(/[\-\u2010-\u2015\u2E3A\u2E3B\uFE58\uFE63\uFF0D]+/g, "-").replace(/ё/g, "е"));
+		return cleanTitle(
+			str
+				.toLowerCase()
+				.replace(/[\-\u2010-\u2015\u2E3A\u2E3B\uFE58\uFE63\uFF0D]+/g, "-")
+				.replace(/ё/g, "е"),
+		);
 	}
 
 	function equalTitle(t1, t2) {
@@ -264,14 +307,14 @@
 			if (!layer.length) layer = $("body");
 
 			var cards = layer.find(".card, .card--small, .card--collection, .card-parser");
-			
+
 			if (cards.length === 0) {
 				var cardViews = layer.find(".card__view");
 				if (cardViews.length) {
 					cards = cardViews.parent();
 				}
 			}
-			
+
 			cards.each(function () {
 				var data = findCardData(this);
 				if (data && data.id) {
