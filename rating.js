@@ -640,10 +640,14 @@
 				var kpHidden = $kpEl.hasClass("hide");
 				var kpText = $kpEl.find("> div").eq(0).text();
 				var hasWaitRating = $(".wait_rating", render).length > 0;
+				
+				var serverKp = e.data.movie.kp_rating;
+				var serverImdb = e.data.movie.imdb_rating;
 				console.log("[Rating Full] Card opened:", movieId, movieTitle);
+				console.log("[Rating Full] Server ratings - KP:", serverKp, "IMDB:", serverImdb);
 				console.log("[Rating Full] KP hidden:", kpHidden, "KP text:", kpText, "Wait rating:", hasWaitRating);
 				
-				setTimeout(function() { Lampa.Noty.show("Card opened: " + movieTitle); }, 50);
+				setTimeout(function() { Lampa.Noty.show("Server KP:" + (serverKp || "none") + " IMDB:" + (serverImdb || "none")); }, 50);
 				
 				if (kpHidden && !hasWaitRating) {
 					var movieCache = _getCache(movieId);
