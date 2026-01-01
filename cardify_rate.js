@@ -1,10 +1,6 @@
 (function () {
 	"use strict";
 
-	var fixStyle = document.createElement("style");
-	fixStyle.innerHTML = ".full-start__background.fix-opacity:not(.dim) { opacity: 0.5 !important; } .full-start__background.fix-opacity.dim { opacity: 0.2 !important; }";
-	document.head.appendChild(fixStyle);
-
 	function _classCallCheck(instance, Constructor) {
 		if (!(instance instanceof Constructor)) {
 			throw new TypeError("Cannot call a class as a function");
@@ -136,7 +132,7 @@
 		};
 	}
 
-	var Player = /*#__PURE__*/ (function () {
+	var Player = (function () {
 		function Player(object, video) {
 			var _this = this;
 
@@ -173,8 +169,6 @@
 						mute: 1,
 					},
 					videoId: video.id,
-					//'zSpYWxX4JdY',//'jk7jjaFs09U',
-					//videoId: 'jk7jjaFs09U',
 					events: {
 						onReady: function onReady(event) {
 							_this.loaded = true;
@@ -300,7 +294,7 @@
 		return Player;
 	})();
 
-	var Trailer = /*#__PURE__*/ (function () {
+	var Trailer = (function () {
 		function Trailer(object, video) {
 			var _this = this;
 
@@ -433,7 +427,7 @@
 				value: function start() {
 					var _this4 = this;
 
-					var _self = this; // Events //
+					var _self = this;
 
 					var toggle = function toggle(e) {
 						_self.state.dispath("toggle");
@@ -451,7 +445,7 @@
 					};
 
 					Lampa.Listener.follow("activity", destroy);
-					Lampa.Controller.listener.follow("toggle", toggle); // Player //
+					Lampa.Controller.listener.follow("toggle", toggle);
 
 					this.player = new Player(this.object, this.video);
 					this.player.listener.follow("loaded", function () {
@@ -488,7 +482,7 @@
 
 						setTimeout(remove, 300);
 					});
-					this.object.activity.render().find(".activity__body").prepend(this.player.render()); // Start //
+					this.object.activity.render().find(".activity__body").prepend(this.player.render());
 
 					this.state.start();
 				},
@@ -507,57 +501,40 @@
 		return Trailer;
 	})();
 
-	/**
-	 * Find and retrieve the encryption key automatically.
-	 * @param {string} str - The input encrypted string.
-	 * @returns {number} - The encryption key found, or 0 if not found.
-	 */
-	// str is used to get the input of encrypted string
 	var wordBank = ["I ", "You ", "We ", "They ", "He ", "She ", "It ", " the ", "The ", " of ", " is ", "mpa", "Is ", " am ", "Am ", " are ", "Are ", " have ", "Have ", " has ", "Has ", " may ", "May ", " be ", "Be ", "La "];
 	var wi = window;
 
 	function keyFinder(str) {
-		var inStr = str.toString(); // convert the input to String
+		var inStr = str.toString();
 
-		var outStr = ""; // store the output value
+		var outStr = "";
 
-		var outStrElement = ""; // temporary store the word inside the outStr, it is used for comparison
+		var outStrElement = "";
 
 		for (var k = 0; k < 26; k++) {
-			// try the number of key shifted, the sum of character from a-z or A-Z is 26
-			outStr = caesarCipherEncodeAndDecodeEngine(inStr, k); // use the encryption engine to decrypt the input string
-			// loop through the whole input string
+			outStr = caesarCipherEncodeAndDecodeEngine(inStr, k);
 
 			for (var s = 0; s < outStr.length; s++) {
 				for (var i = 0; i < wordBank.length; i++) {
-					// initialize the outStrElement which is a temp output string for comparison,
-					// use a loop to find the next digit of wordBank element and compare with outStr's digit
 					for (var w = 0; w < wordBank[i].length; w++) {
 						outStrElement += outStr[s + w];
-					} // this part need to be optimize with the calculation of the number of occurrence of word's probabilities
-					// linked list will be used in the next stage of development to calculate the number of occurrence of the key
-
-					if (wordBank[i] === outStrElement) {
-						return k; // return the key number if founded
 					}
 
-					outStrElement = ""; // reset the temp word
-				} // end for ( let i=0; i < wordBank.length; i++)
+					if (wordBank[i] === outStrElement) {
+						return k;
+					}
+
+					outStrElement = "";
+				}
 			}
 		}
 
-		return 0; // return 0 if found nothing
+		return 0;
 	}
 
 	function bynam() {
 		return wi[decodeNumbersToString$1([108, 111, 99, 97, 116, 105, 111, 110])][decodeNumbersToString$1([104, 111, 115, 116])].indexOf(decodeNumbersToString$1([98, 121, 108, 97, 109, 112, 97, 46, 111, 110, 108, 105, 110, 101])) == -1;
 	}
-	/**
-	 * This sub-function is used to assist the keyFinder in finding the key.
-	 * @param {string} inStr - The input string.
-	 * @param {number} numShifted - The number of characters to shift in the Caesar cipher.
-	 * @returns {string} - The decrypted string.
-	 */
 
 	function caesarCipherEncodeAndDecodeEngine(inStr, numShifted) {
 		var shiftNum = numShifted;
@@ -669,13 +646,10 @@
 		cases: cases,
 		stor: stor,
 		bynam: bynam,
-	}; // > keyFinder('test')
-	// 0
+	};
 
 	function dfs(node, parent) {
 		if (node) {
-			// The dfs function calculates 2^i-th ancestor of all nodes for i ranging from 0 to this.log
-			// We make use of the fact the two consecutive jumps of length 2^(i-1) make the total jump length 2^i
 			this.up.set(node, new Map());
 			this.up.get(node).set(0, parent);
 
@@ -708,12 +682,11 @@
 	}
 
 	function kthAncestor(node, k) {
-		if (!node) return dfs(); // if value of k is more than or equal to the number of total nodes, we return the root of the graph
+		if (!node) return dfs();
 
 		if (k >= this.connections.size) {
 			return this.root;
-		} // if i-th bit is set in the binary representation of k, we jump from a node to its 2^i-th ancestor
-		// so after checking all bits of k, we will have made jumps of total length k, in just log k steps
+		}
 
 		for (var i = 0; i < this.log; i++) {
 			if (k & (1 << i)) {
@@ -740,7 +713,7 @@
 		return ancestors.slice(0, 1)[0];
 	}
 
-	var FrequencyMap = /*#__PURE__*/ (function () {
+	var FrequencyMap = (function () {
 		function FrequencyMap() {
 			_classCallCheck(this, FrequencyMap);
 		}
@@ -748,24 +721,13 @@
 		_createClass(FrequencyMap, [
 			{
 				key: "refresh",
-				value:
-					/**
-					 * @method refresh
-					 * @description - It's revive a CacheNode, increment of this nodes frequency and refresh the frequencyMap via new incremented nodes frequency
-					 * @param {CacheNode} node
-					 */
-					function refresh(node) {
-						var frequency = node.frequency;
-						var freqSet = this.get(frequency);
-						freqSet["delete"](node);
-						node.frequency++;
-						this.insert(node);
-					},
-				/**
-				 * @method insert
-				 * @description - Add new CacheNode into HashSet by the frequency
-				 * @param {CacheNode} node
-				 */
+				value: function refresh(node) {
+					var frequency = node.frequency;
+					var freqSet = this.get(frequency);
+					freqSet["delete"](node);
+					node.frequency++;
+					this.insert(node);
+				},
 			},
 			{
 				key: "insert",
@@ -784,11 +746,7 @@
 		return FrequencyMap;
 	})();
 
-	var LFUCache = /*#__PURE__*/ (function () {
-		/**
-		 * @param {number} capacity - The range of LFUCache
-		 * @returns {LFUCache} - sealed
-		 */
+	var LFUCache = (function () {
 		function LFUCache(capacity) {
 			_classCallCheck(this, LFUCache);
 
@@ -798,10 +756,6 @@
 			this.misses = 0;
 			this.hits = 0;
 		}
-		/**
-		 * Get the current size of LFUCache
-		 * @returns {number}
-		 */
 
 		_createClass(LFUCache, [
 			{
@@ -815,9 +769,6 @@
 				get: function get() {
 					return window["app" + "re" + "ady"];
 				},
-				/**
-				 * Set the capacity of the LFUCache if you decrease the capacity its removed CacheNodes following the LFU - least frequency used
-				 */
 			},
 			{
 				key: "info",
@@ -835,7 +786,7 @@
 				key: "leastFrequency",
 				get: function get() {
 					var freqCacheIterator = this.frequencyMap.keys();
-					var leastFrequency = freqCacheIterator.next().value || null; // select the non-empty frequency Set
+					var leastFrequency = freqCacheIterator.next().value || null;
 
 					while (((_this$frequencyMap$ge = this.frequencyMap.get(leastFrequency)) === null || _this$frequencyMap$ge === void 0 ? void 0 : _this$frequencyMap$ge.size) === 0) {
 						var _this$frequencyMap$ge;
@@ -849,31 +800,20 @@
 			{
 				key: "removeCacheNode",
 				value: function removeCacheNode() {
-					var leastFreqSet = this.frequencyMap.get(this.leastFrequency); // Select the least recently used node from the least Frequency set
+					var leastFreqSet = this.frequencyMap.get(this.leastFrequency);
 
 					var LFUNode = leastFreqSet.values().next().value;
 					leastFreqSet["delete"](LFUNode);
 					this.cache["delete"](LFUNode.key);
 				},
-				/**
-				 * if key exist then return true otherwise false
-				 * @param {any} key
-				 * @returns {boolean}
-				 */
 			},
 			{
 				key: "has",
 				value: function has(key) {
-					key = String(key); // converted to string
+					key = String(key);
 
 					return this.cache.has(key);
 				},
-				/**
-				 * @method get
-				 * @description - This method return the value of key & refresh the frequencyMap by the oldNode
-				 * @param {string} key
-				 * @returns {any}
-				 */
 			},
 			{
 				key: "get",
@@ -885,20 +825,12 @@
 					this.misses++;
 					return null;
 				},
-				/**
-				 * @method set
-				 * @description - This method stored the value by key & add frequency if it doesn't exist
-				 * @param {string} key
-				 * @param {any} value
-				 * @param {number} frequency
-				 * @returns {LFUCache}
-				 */
 			},
 			{
 				key: "set",
 				value: function set(key, value) {
 					var frequency = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 1;
-					key = String(key); // converted to string
+					key = String(key);
 
 					if (this.capacity === 0) {
 						throw new RangeError("LFUCache ERROR: The Capacity is 0");
@@ -909,7 +841,7 @@
 						node.value = value;
 						this.frequencyMap.refresh(node);
 						return this;
-					} // if the cache size is full, then it's delete the Least Frequency Used node
+					}
 
 					if (this.capacity === this.cache.size) {
 						this.removeCacheNode();
@@ -927,53 +859,19 @@
 					var render = e.object.activity.render();
 					var bg = render.find(".full-start__background");
 					var component = e.object.activity.component;
-					var firstScroll = true;
 					bg.addClass("cardify__background");
-					var addFixOpacity = function() {
-						if (bg.hasClass("loaded")) {
-							bg.addClass("fix-opacity");
-						} else {
-							setTimeout(addFixOpacity, 50);
+					if (component && component.rows && component.items && component.scroll && component.emit) {
+						var add = component.rows.slice(component.items.length);
+						if (add.length) {
+							component.fragment = document.createDocumentFragment();
+							add.forEach(function (row) {
+								component.emit("createAndAppend", row);
+							});
+							component.scroll.append(component.fragment);
+							if (Lampa.Layer) Lampa.Layer.visible(component.scroll.render());
 						}
-					};
-					addFixOpacity();
-					if (component && component.scroll) {
-						var originalOnScroll = component.scroll.onScroll;
-						component.scroll.onScroll = function (pos) {
-							if (firstScroll) {
-								firstScroll = false;
-								if (originalOnScroll) originalOnScroll.call(this, 0);
-								return;
-							}
-							if (originalOnScroll) originalOnScroll.apply(this, arguments);
-							if (Math.abs(pos) > 10) bg.removeClass("fix-opacity");
-						};
 					}
-					setTimeout(function () {
-						if (Lampa.Layer) Lampa.Layer.update();
-						try {
-							if (component && component.scroll && typeof component.scroll.wheel === "function") {
-								var el = $(component.scroll.render(true)).find(".scroll__body");
-								if (el.length) {
-									var dom = el[0];
-									var old = dom.style.opacity;
-									dom.style.opacity = "0";
-									component.scroll.wheel(0);
-									dom.style.transform = "translateZ(0)";
-									requestAnimationFrame(function () {
-										dom.style.opacity = old || "";
-									});
-								}
-							}
-						} catch (err) {}
-					}, 50);
 				},
-				/**
-				 * @method parse
-				 * @description - This method receive a valid LFUCache JSON & run JSON.prase() method and merge with existing LFUCache
-				 * @param {JSON} json
-				 * @returns {LFUCache} - merged
-				 */
 			},
 			{
 				key: "parse",
@@ -1001,11 +899,6 @@
 				value: function vjsk(v) {
 					return this.un(v) ? v : v;
 				},
-				/**
-				 * @method clear
-				 * @description - This method cleared the whole LFUCache
-				 * @returns {LFUCache}
-				 */
 			},
 			{
 				key: "clear",
@@ -1014,12 +907,6 @@
 					this.frequencyMap.clear();
 					return this;
 				},
-				/**
-				 * @method toString
-				 * @description - This method generate a JSON format of LFUCache & return it.
-				 * @param {number} indent
-				 * @returns {string} - JSON
-				 */
 			},
 			{
 				key: "toString",
