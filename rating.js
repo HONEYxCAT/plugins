@@ -104,8 +104,10 @@
 		var search_date = card.release_date || card.first_air_date || card.last_air_date || "0000";
 		var search_year = parseInt((search_date + "").slice(0, 4));
 		var orig = card.original_title || card.original_name;
+		var cardTitle = card.title || card.name || "Unknown";
 
 		if (!items || !items.length) {
+			setTimeout(function() { Lampa.Noty.show("No items found: " + cardTitle); }, 100);
 			_setCache(params.id, { kp: 0, imdb: 0, timestamp: new Date().getTime() });
 			if (callback) callback();
 			return;
@@ -178,6 +180,7 @@
 
 		if (cards.length == 1 && is_sure) {
 			var id = cards[0].kp_id || cards[0].kinopoisk_id || cards[0].kinopoiskId || cards[0].filmId;
+			setTimeout(function() { Lampa.Noty.show("Found KP ID: " + id + " for " + cardTitle); }, 100);
 
 			network.clear();
 			network.timeout(5000);
@@ -236,6 +239,7 @@
 				{ dataType: "text" },
 			);
 		} else {
+			setTimeout(function() { Lampa.Noty.show("Not sure match: " + cardTitle + " cards:" + cards.length + " sure:" + is_sure); }, 100);
 			_setCache(params.id, { kp: 0, imdb: 0, timestamp: new Date().getTime() });
 			if (callback) callback();
 		}
