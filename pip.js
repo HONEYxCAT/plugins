@@ -24,23 +24,21 @@
 
 		var panel = document.querySelector(".player-panel");
 		if (panel) {
-			var buttons = panel.querySelectorAll("[class*='player-panel__']");
-			buttons.forEach(function (btn) {
-				var classes = Array.from(btn.classList);
-				var key = classes.find(function (c) {
-					return c.startsWith("player-panel__");
-				});
-				if (key) {
-					savedPanelState.buttons[key] = {
-						hidden: btn.classList.contains("hide"),
-						text: btn.textContent,
-					};
-				}
-			});
+			var leftPrev = panel.querySelector(".player-panel__left .player-panel__prev");
+			var leftNext = panel.querySelector(".player-panel__left .player-panel__next");
+			var centerPrev = panel.querySelector(".player-panel__center .player-panel__prev");
+			var centerNext = panel.querySelector(".player-panel__center .player-panel__next");
+
+			if (leftPrev) savedPanelState.buttons["left-prev"] = !leftPrev.classList.contains("hide");
+			if (leftNext) savedPanelState.buttons["left-next"] = !leftNext.classList.contains("hide");
+			if (centerPrev) savedPanelState.buttons["center-prev"] = !centerPrev.classList.contains("hide");
+			if (centerNext) savedPanelState.buttons["center-next"] = !centerNext.classList.contains("hide");
 		}
 
 		if (savedPlayData && savedPlayData.segments) {
 			savedSegments = JSON.parse(JSON.stringify(savedPlayData.segments));
+		} else {
+			savedSegments = null;
 		}
 	}
 
@@ -48,20 +46,33 @@
 		if (!savedPanelState) return;
 
 		var panel = document.querySelector(".player-panel");
-		if (panel) {
-			var buttons = panel.querySelectorAll("[class*='player-panel__']");
-			buttons.forEach(function (btn) {
-				var classes = Array.from(btn.classList);
-				var key = classes.find(function (c) {
-					return c.startsWith("player-panel__");
-				});
-				if (key && savedPanelState.buttons && savedPanelState.buttons[key]) {
-					var state = savedPanelState.buttons[key];
-					btn.classList.toggle("hide", state.hidden);
-					if (state.text && btn.childNodes.length === 1 && btn.childNodes[0].nodeType === 3) {
-						btn.textContent = state.text;
-					}
-				}
+		if (panel && savedPanelState.buttons) {
+			var leftPrev = panel.querySelector(".player-panel__left .player-panel__prev");
+			var leftNext = panel.querySelector(".player-panel__left .player-panel__next");
+			var centerPrev = panel.querySelector(".player-panel__center .player-panel__prev");
+			var centerNext = panel.querySelector(".player-panel__center .player-panel__next");
+
+			if (leftPrev && savedPanelState.buttons["left-prev"] !== undefined) {
+				leftPrev.classList.toggle("hide", !savedPanelState.buttons["left-prev"]);
+			}
+			if (leftNext && savedPanelState.buttons["left-next"] !== undefined) {
+				leftNext.classList.toggle("hide", !savedPanelState.buttons["left-next"]);
+			}
+			if (centerPrev && savedPanelState.buttons["center-prev"] !== undefined) {
+				centerPrev.classList.toggle("hide", !savedPanelState.buttons["center-prev"]);
+			}
+			if (centerNext && savedPanelState.buttons["center-next"] !== undefined) {
+				centerNext.classList.toggle("hide", !savedPanelState.buttons["center-next"]);
+			}
+		}
+
+		var playlist = Lampa.PlayerPlaylist.get();
+		var position = Lampa.PlayerPlaylist.position();
+		if (playlist && playlist.length > 0) {
+			Lampa.PlayerPlaylist.set(playlist);
+			Lampa.PlayerPanel.showNextEpisodeName({
+				playlist: playlist,
+				position: position,
 			});
 		}
 
