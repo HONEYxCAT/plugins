@@ -12,7 +12,6 @@
 	var isExitingPiP = false;
 	var pipActivatedTime = 0;
 	var savedPlayData = null;
-	var savedVideoTime = 0;
 	var playerContainer = null;
 	var savedPanelState = null;
 	var capturedEvents = {};
@@ -123,6 +122,109 @@
 		}
 	}
 
+	var postPipTimelineInterval = null;
+	var postPipTimelineHash = null;
+
+	function saveTimelineDirectly(hash, time, duration, percent) {
+		var timeline = Lampa.Storage.get("timeline", "[]");
+		var found = false;
+
+		for (var i = 0; i < timeline.length; i++) {
+			if (timeline[i].hash === hash) {
+				timeline[i].time = time;
+				timeline[i].duration = duration;
+				timeline[i].percent = percent;
+				found = true;
+				break;
+			}
+		}
+
+		if (!found) {
+			timeline.push({
+				hash: hash,
+				time: time,
+				duration: duration,
+				percent: percent,
+				profile: 0,
+			});
+		}
+
+		Lampa.Storage.set("timeline", timeline);
+	}
+
+	function startPostPipTimelineUpdate(hash) {
+		stopPostPipTimelineUpdate();
+		postPipTimelineHash = hash;
+		postPipTimelineInterval = setInterval(function () {
+			var video = Lampa.PlayerVideo && Lampa.PlayerVideo.video ? Lampa.PlayerVideo.video() : null;
+			if (video && !video.paused && video.duration && postPipTimelineHash) {
+				var currentTime = video.currentTime;
+				var duration = video.duration;
+				var percent = Math.round((currentTime / duration) * 100);
+
+				if (savedPlayData && savedPlayData.timeline && savedPlayData.timeline.handler) {
+					savedPlayData.timeline.time = currentTime;
+					savedPlayData.timeline.duration = duration;
+					savedPlayData.timeline.percent = percent;
+					savedPlayData.timeline.handler(percent, currentTime, duration);
+				} else {
+					saveTimelineDirectly(postPipTimelineHash, currentTime, duration, percent);
+				}
+			} else if (!video || !document.body.classList.contains("player--viewing")) {
+				if (postPipTimelineHash) {
+					var lastVideo = Lampa.PlayerVideo && Lampa.PlayerVideo.video ? Lampa.PlayerVideo.video() : null;
+					if (lastVideo && lastVideo.duration) {
+						var currentTime = lastVideo.currentTime;
+						var duration = lastVideo.duration;
+						var percent = Math.round((currentTime / duration) * 100);
+
+						if (savedPlayData && savedPlayData.timeline && savedPlayData.timeline.handler) {
+							savedPlayData.timeline.time = currentTime;
+							savedPlayData.timeline.duration = duration;
+							savedPlayData.timeline.percent = percent;
+							savedPlayData.timeline.handler(percent, currentTime, duration);
+						} else {
+							saveTimelineDirectly(postPipTimelineHash, currentTime, duration, percent);
+						}
+					}
+				}
+
+				clearInterval(postPipTimelineInterval);
+				postPipTimelineInterval = null;
+				postPipTimelineHash = null;
+			}
+		}, 3000);
+	}
+
+	function stopPostPipTimelineUpdate() {
+		if (postPipTimelineInterval) {
+			var video = Lampa.PlayerVideo && Lampa.PlayerVideo.video ? Lampa.PlayerVideo.video() : null;
+			if (video && video.duration && postPipTimelineHash) {
+				var currentTime = video.currentTime;
+				var duration = video.duration;
+				var percent = Math.round((currentTime / duration) * 100);
+
+				if (savedPlayData && savedPlayData.timeline && savedPlayData.timeline.handler) {
+					savedPlayData.timeline.time = currentTime;
+					savedPlayData.timeline.duration = duration;
+					savedPlayData.timeline.percent = percent;
+					savedPlayData.timeline.handler(percent, currentTime, duration);
+				} else {
+					Lampa.Timeline.update({
+						hash: postPipTimelineHash,
+						time: currentTime,
+						duration: duration,
+						percent: percent,
+					});
+				}
+			}
+			clearInterval(postPipTimelineInterval);
+			postPipTimelineInterval = null;
+			postPipTimelineHash = null;
+		}
+		savedPlayData = null;
+	}
+
 	function startPipTimelineUpdate() {
 		stopPipTimelineUpdate();
 		pipTimelineInterval = setInterval(function () {
@@ -131,12 +233,19 @@
 				var duration = originalVideo.duration;
 				var percent = Math.round((currentTime / duration) * 100);
 
-				Lampa.Timeline.update({
-					hash: savedTimelineHash,
-					time: currentTime,
-					duration: duration,
-					percent: percent,
-				});
+				if (savedPlayData && savedPlayData.timeline && savedPlayData.timeline.handler) {
+					savedPlayData.timeline.time = currentTime;
+					savedPlayData.timeline.duration = duration;
+					savedPlayData.timeline.percent = percent;
+					savedPlayData.timeline.handler(percent, currentTime, duration);
+				} else {
+					Lampa.Timeline.update({
+						hash: savedTimelineHash,
+						time: currentTime,
+						duration: duration,
+						percent: percent,
+					});
+				}
 			}
 		}, 3000);
 	}
@@ -312,7 +421,6 @@
 		playerContainer = document.querySelector(".player");
 
 		savedPlayData = Lampa.Player.playdata();
-		savedVideoTime = originalVideo.currentTime;
 
 		if (savedPlayData && savedPlayData.timeline) {
 			savedTimelineHash = savedPlayData.timeline.hash;
@@ -356,6 +464,8 @@
 		isExitingPiP = true;
 
 		stopPipTimelineUpdate();
+
+		var timelineHashForRestore = savedTimelineHash;
 
 		if (originalVideo && originalVideo.duration && savedTimelineHash) {
 			var currentTime = originalVideo.currentTime;
@@ -404,11 +514,11 @@
 
 		restorePanelState();
 
+		startPostPipTimelineUpdate(timelineHashForRestore);
+
 		originalVideo = null;
 		originalVideoParent = null;
 		playerContainer = null;
-		savedPlayData = null;
-		savedVideoTime = 0;
 		isExitingPiP = false;
 	}
 
@@ -448,7 +558,6 @@
 		hideHeaderButton();
 
 		savedPlayData = null;
-		savedVideoTime = 0;
 		savedPanelState = null;
 		savedTimelineHash = null;
 		savedSegments = null;
@@ -557,6 +666,19 @@
 		if (!originalPlayerPlay && Lampa.Player && Lampa.Player.play) {
 			originalPlayerPlay = Lampa.Player.play;
 			Lampa.Player.play = function (data) {
+				if (data && data.timeline) {
+					var stored = Lampa.Storage.get("timeline", "[]");
+					var found = stored.find(function (t) {
+						return t.hash === data.timeline.hash;
+					});
+
+					if (found && found.time > data.timeline.time) {
+						data.timeline.time = found.time;
+						data.timeline.duration = found.duration;
+						data.timeline.percent = found.percent;
+					}
+				}
+
 				if (pipActive && !isExitingPiP) {
 					Lampa.Noty.show("Сначала закройте PiP");
 					return;
@@ -589,6 +711,7 @@
 
 		Lampa.Listener.follow("player", function (e) {
 			if (e.type === "start") {
+				stopPostPipTimelineUpdate();
 				setTimeout(function () {
 					overridePipHandler();
 					interceptPlayerMethods();
@@ -598,6 +721,30 @@
 			}
 
 			if (e.type === "destroy") {
+				if (postPipTimelineHash) {
+					var video = Lampa.PlayerVideo && Lampa.PlayerVideo.video ? Lampa.PlayerVideo.video() : null;
+					if (video && video.duration) {
+						var currentTime = video.currentTime;
+						var duration = video.duration;
+						var percent = Math.round((currentTime / duration) * 100);
+
+						if (savedPlayData && savedPlayData.timeline && savedPlayData.timeline.handler) {
+							savedPlayData.timeline.time = currentTime;
+							savedPlayData.timeline.duration = duration;
+							savedPlayData.timeline.percent = percent;
+							savedPlayData.timeline.handler(percent, currentTime, duration);
+						} else {
+							Lampa.Timeline.update({
+								hash: postPipTimelineHash,
+								time: currentTime,
+								duration: duration,
+								percent: percent,
+							});
+						}
+					}
+				}
+
+				stopPostPipTimelineUpdate();
 				if (pipActive) {
 					closePiPCompletely();
 				}
