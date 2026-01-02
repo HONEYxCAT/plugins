@@ -883,6 +883,8 @@
 						render.find(".full-start__status").hide();
 					}
 
+					this.loadOriginalPoster(e, render);
+
 					if (component && component.rows && component.items && component.scroll && component.emit) {
 						var add = component.rows.slice(component.items.length);
 						if (add.length) {
@@ -893,6 +895,31 @@
 							component.scroll.append(component.fragment);
 							if (Lampa.Layer) Lampa.Layer.visible(component.scroll.render());
 						}
+					}
+				},
+			},
+			{
+				key: "loadOriginalPoster",
+				value: function loadOriginalPoster(e, render) {
+					var bgImg = render.find("img.full-start__background");
+
+					var backdropPath = null;
+					if (e.data && e.data.movie && e.data.movie.backdrop_path) {
+						backdropPath = e.data.movie.backdrop_path;
+					} else if (e.object && e.object.card && e.object.card.backdrop_path) {
+						backdropPath = e.object.card.backdrop_path;
+					} else if (bgImg.length && bgImg.attr("src")) {
+						var srcMatch = bgImg.attr("src").match(/\/([^\/]+\.jpg)$/);
+						if (srcMatch) backdropPath = "/" + srcMatch[1];
+					}
+
+					if (backdropPath && bgImg.length) {
+						var originalUrl = "https://image.tmdb.org/t/p/original" + backdropPath;
+						var tempImg = new Image();
+						tempImg.onload = function () {
+							bgImg.attr("src", originalUrl);
+						};
+						tempImg.src = originalUrl;
 					}
 				},
 			},
