@@ -501,7 +501,7 @@
 						transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 					}
 					.new-interface .full-start__background.active {
-						opacity: 1;
+						opacity: 0.5;
 					}
 					.new-interface .full-start__rate {
 						font-size: 1.3em;
@@ -644,7 +644,7 @@
 						transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 					}
 					.new-interface .full-start__background.active {
-						opacity: 1;
+						opacity: 0.5;
 					}
 					.new-interface .full-start__rate {
 						font-size: 1.2em;
@@ -1275,8 +1275,32 @@
 		var vote = parseFloat(match[0]);
 		var color = getColorByRating(vote);
 
-		if (color) {
+		if (color && Lampa.Storage.get("colored_ratings", true)) {
 			$el.css("color", color);
+
+			// Применяем обводку только к элементам страницы деталей, исключая карточки
+			if (Lampa.Storage.get("rating_border", false) && !$el.hasClass("card__vote")) {
+				// Для элементов типа .rate--kp, .rate--imdb, .rate--cub применяем обводку только к родителю
+				if ($el.parent().hasClass("full-start__rate")) {
+					$el.parent().css("border", "1px solid " + color);
+					$el.css("border", "");
+				} else if ($el.hasClass("full-start__rate") || $el.hasClass("full-start-new__rate") || $el.hasClass("info__rate")) {
+					$el.css("border", "1px solid " + color);
+				} else {
+					$el.css("border", "");
+				}
+			} else {
+				$el.css("border", "");
+				if ($el.parent().hasClass("full-start__rate")) {
+					$el.parent().css("border", "");
+				}
+			}
+		} else {
+			$el.css("color", "");
+			$el.css("border", "");
+			if ($el.parent().hasClass("full-start__rate")) {
+				$el.parent().css("border", "");
+			}
 		}
 	}
 
@@ -1467,8 +1491,18 @@
 				if (value) {
 					updateVoteColors();
 				} else {
-					$(".card__vote, .full-start__rate, .full-start-new__rate, .info__rate, .card__imdb-rate, .card__kinopoisk-rate").css("color", "");
+					$(".card__vote, .full-start__rate, .full-start-new__rate, .info__rate, .card__imdb-rate, .card__kinopoisk-rate").css("color", "").css("border", "");
+					$(".full-start__rate").css("border", "");
 				}
+			},
+		});
+
+		Lampa.SettingsApi.addParam({
+			component: "style_interface",
+			param: { name: "rating_border", type: "trigger", default: false },
+			field: { name: "Обводка рейтингов" },
+			onChange: function (value) {
+				updateVoteColors();
 			},
 		});
 
@@ -1564,6 +1598,7 @@
 			Lampa.Storage.set("colored_ratings", "true");
 			Lampa.Storage.set("async_load", "true");
 			Lampa.Storage.set("hide_captions", "true");
+			Lampa.Storage.set("rating_border", "false");
 			Lampa.Storage.set("interface_size", "small");
 		}
 	}
