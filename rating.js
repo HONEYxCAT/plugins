@@ -418,7 +418,7 @@
 			var reactionSrc = Lampa.Utils.protocol() + Lampa.Manifest.cub_domain + "/img/reactions/" + medianReaction + ".svg";
 			var div = rateCub.removeClass("hide").find("> div");
 			div.eq(0).text(cub_rating_text);
-			div.eq(1).html('<img style="width:1em;height:1em;margin:0 0.2em;" src="' + reactionSrc + '">');
+			div.eq(1).html('<img style="height:1.2em;margin:0 0.2em;" src="' + reactionSrc + '">');
 		}
 	}
 
