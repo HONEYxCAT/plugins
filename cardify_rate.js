@@ -860,6 +860,25 @@
 					var bg = render.find(".full-start__background");
 					var component = e.object.activity.component;
 					bg.addClass("cardify__background");
+
+					var details = render.find(".full-start-new__details");
+					if (details.length) {
+						var genreSpan = null;
+						details.children("span").each(function () {
+							var $span = $(this);
+							if (!$span.hasClass("full-start-new__split") && $span.text().indexOf("|") !== -1) {
+								genreSpan = $span;
+								return false;
+							}
+						});
+						if (genreSpan) {
+							genreSpan.css("width", "100%");
+							genreSpan.prev(".full-start-new__split").remove();
+							genreSpan.next(".full-start-new__split").remove();
+							details.prepend(genreSpan);
+						}
+					}
+
 					if (component && component.rows && component.items && component.scroll && component.emit) {
 						var add = component.rows.slice(component.items.length);
 						if (add.length) {
