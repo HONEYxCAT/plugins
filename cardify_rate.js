@@ -863,19 +863,19 @@
 
 					var details = render.find(".full-start-new__details");
 					if (details.length) {
-						var genreSpan = null;
+						var nextEpisodeSpan = null;
 						details.children("span").each(function () {
 							var $span = $(this);
-							if (!$span.hasClass("full-start-new__split") && $span.text().indexOf("|") !== -1) {
-								genreSpan = $span;
+							if (!$span.hasClass("full-start-new__split") && $span.text().indexOf("/") !== -1) {
+								nextEpisodeSpan = $span;
 								return false;
 							}
 						});
-						if (genreSpan) {
-							genreSpan.css("width", "100%");
-							genreSpan.prev(".full-start-new__split").remove();
-							genreSpan.next(".full-start-new__split").remove();
-							details.prepend(genreSpan);
+						if (nextEpisodeSpan) {
+							nextEpisodeSpan.css("width", "100%");
+							nextEpisodeSpan.prev(".full-start-new__split").remove();
+							nextEpisodeSpan.next(".full-start-new__split").remove();
+							details.append(nextEpisodeSpan);
 						}
 					}
 
